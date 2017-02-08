@@ -3,6 +3,9 @@
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/opencv.hpp"
 #include "opencv2/xfeatures2d.hpp"
+#include <fstream>
+#include <sstream>
+#include <string>
 
 #define NPOINTS 4
 
