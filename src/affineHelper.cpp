@@ -18,7 +18,6 @@ Mat AffineHelper::readImage(const string &name, ImreadModes mode)
 
 void AffineHelper::precomputation(Mat &img, vector<Mat> &allDescriptors, vector<vector<KeyPoint> > &allKeypoints, bool isRoi, bool isChessboardPresent)
 {
-    //resize(img, img, Size(600, 400));
     if(isChessboardPresent)
     {
         cout << "Precomputation started..." << endl;
@@ -32,7 +31,7 @@ void AffineHelper::precomputation(Mat &img, vector<Mat> &allDescriptors, vector<
         for(int i = 0; i < transformationMatrixes.size(); i++)
         {
             Mat dst = Mat::zeros( img.rows, img.cols, img.type() );
-            warpPerspective( img, dst, transformationMatrixes[i], Size(img.cols, img.rows));
+            warpPerspective( img, dst, transformationMatrixes[i], Size(img.cols+200, img.rows+200));
 
             cout << "Compute descriptors for affine transformation: " << i << endl;
             describeAndDetectTransformedKeypoints(dst, transformationMatrixes[i], initialVector, allKeypoints, allDescriptors);
@@ -72,7 +71,7 @@ void AffineHelper::precomputation(Mat &img, vector<Mat> &allDescriptors, vector<
             for(int j = 0; j < allKeypoints[i].size(); j++)
             {
                 allKeypoints[i][j].pt.x += 180;
-                allKeypoints[i][j].pt.y += 60;
+                allKeypoints[i][j].pt.y += 68;
             }
         }
     }
@@ -129,7 +128,7 @@ void AffineHelper::improveBadMatches(vector<Mat> &descriptors1, Mat &descriptors
     cout << "Improve the quality of matching using affine transformations..." << endl;
     for(int i = 0; i < badMatches.size(); i++)
     {
-        int originalFotoIdx = badMatches[i].queryIdx;   ///
+        int originalFotoIdx = badMatches[i].queryIdx;
         int comparedFotoIdx = badMatches[i].trainIdx;
         int originalDistance = badMatches[i].distance;
         Mat onePointDesc = getOnePointDescriptors(originalFotoIdx, descriptors1);
@@ -140,9 +139,9 @@ void AffineHelper::improveBadMatches(vector<Mat> &descriptors1, Mat &descriptors
             Mat desc2;
             desc2.push_back(descriptors2.row(comparedFotoIdx));
             matcher->knnMatch( desc2, onePointDesc, potentialMatches, 1 );
-            if(!potentialMatches.empty() && potentialMatches[0][0].distance < 0.9 * originalDistance)
+            if(!potentialMatches.empty() && potentialMatches[0][0].distance < 0.8 * originalDistance)
             {
-                cout << "Improved - keypoint nr " << badMatches[i].trainIdx << ", new distance: " << potentialMatches[0][0].distance << ", old: " << originalDistance << endl;
+                cout << "Improved - keypoint nr " << badMatches[i].queryIdx << ", new distance: " << potentialMatches[0][0].distance << ", old: " << originalDistance << endl;
                 badMatches[i].distance = potentialMatches[0][0].distance;
                 goodMatches.push_back(badMatches[i]);
             }
@@ -151,6 +150,7 @@ void AffineHelper::improveBadMatches(vector<Mat> &descriptors1, Mat &descriptors
             desc2.release();
         }
     }
+    cout << "GOOD MATCHES SIZE: " << goodMatches.size() << endl << endl;
 }
 
 void AffineHelper::drawFoundMatches(Mat &img1, vector<KeyPoint> &keypoints1, Mat &img2, vector<KeyPoint> &keypoints2, vector<DMatch> &matches, Mat &imgMatches, const string windowName)
@@ -293,10 +293,7 @@ void AffineHelper::describeAndDetectInitKeypoints(Mat &img, vector<vector<KeyPoi
 
     Mat desc;
     descriptor->compute( img, keypointsPre, desc );
-
-//    computeDescriptorsInProperOrder(keypointsPre, desc, img);
     descriptors.push_back(desc);
-
 
     keypointsPre.clear();
     desc.release();
@@ -324,24 +321,16 @@ void AffineHelper::describeAndDetectTransformedKeypoints(Mat &transformedImg, Ma
     {
         kp.push_back(initialVector[i].pt);
     }
-
     perspectiveTransform(kp, kp, transformMatrix);
-
     for(int i = 0; i < keypointsPre.size(); i++)
     {
         keypointsPre[i].pt = kp[i];
     }
-
     keypoints.push_back(keypointsPre);
 
     Mat desc;
     descriptor->compute( transformedImg, keypointsPre, desc );
     descriptors.push_back(desc);
-
-    Mat temp;
-    drawKeypoints(transformedImg, keypointsPre, temp );
-    imshow("aaa", temp);
-    waitKey(0);
 
     keypointsPre.clear();
     kp.clear();
@@ -371,7 +360,7 @@ void AffineHelper::getTransformationMatrixes(const string &path, vector<Mat> &ma
         {
             vector<Point2f> nextCorners;
             Mat nextImage = readImage(line, IMREAD_GRAYSCALE);
-            resize(nextImage, nextImage, Size(600, 400));
+            //resize(nextImage, nextImage, Size(600, 400));
             findCorners(nextImage, nextCorners);
             Mat homographyMatrix = findHomography(initialCorners, nextCorners, RANSAC);
             matrixes.push_back(homographyMatrix);
