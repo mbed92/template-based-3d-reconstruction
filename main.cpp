@@ -11,7 +11,7 @@ int main()
     Ptr<Feature2D> descriptor = xfeatures2d::SIFT::create();
 
     /*describe & detect model keypoints*/
-    KpMatcher* kpm = new KpMatcher(detector, descriptor);
+    Ptr<KpMatcher> kpm = new KpMatcher(detector, descriptor);
     Mat img = kpm->readImage("images/model.png", IMREAD_GRAYSCALE );
     kpm->init(img, true);
 
@@ -24,14 +24,21 @@ int main()
     kpm->improveBadMatches(NORM_L2, true, 0.7);
 
     /*visualize*/
-    kpm->drawFoundMatches(img, frame, "All matches", false);
-    kpm->drawFoundMatches(img, frame, "Only improved", true);
+    //kpm->drawFoundMatches(img, frame, "All matches", false);
+    //kpm->drawFoundMatches(img, frame, "Only improved", true);
 
-    //    /*~~~~~~~~~~~~~~~~~~~~~ 3D reconstruction (EPFL) ~~~~~~~~~~~~~~~~~~~~~~~~~*/
-    //    Reconstructor *rec = new Reconstructor();
-    //    rec->init();
-    //    rec->drawRefMesh(img);
 
-    delete kpm;
+
+
+    /*~~~~~~~~~~~~~~~~~~~~~ 3D reconstruction (EPFL) ~~~~~~~~~~~~~~~~~~~~~~~~~*/
+    Reconstructor *rec = new Reconstructor();
+    rec->init();
+    rec->deform();  //dummy method
+    rec->drawRefMesh(img);
+
+
+
+
+    kpm.release();
     return EXIT_SUCCESS;
 }

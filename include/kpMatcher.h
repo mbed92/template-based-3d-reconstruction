@@ -53,6 +53,8 @@ private:
     vector<KeyPoint> keypointsFrame;
     vector<DMatch> goodMatches, badMatches, improvementMatches;
     vector<Mat> transformationMatrixes;
+    Ptr<Feature2D> detector;
+    Ptr<Feature2D> descriptor;
 
 public:
     KpMatcher(Ptr<Feature2D> detect, Ptr<Feature2D> desc)
@@ -67,6 +69,7 @@ public:
         descriptor.release();
     }
 
+    /*ASIFT++*/
     Mat readImage(const string &name, ImreadModes mode);
     void init(Mat &img, bool isChessboardPresent);
     void describeAndDetectFrameKeypoints(Mat &frame);
@@ -74,15 +77,19 @@ public:
     void improveBadMatches(NormTypes norm, bool isFlann, const float ratio);
     void drawFoundMatches(Mat &img1, Mat &img2, const string &windowName, bool drawOnlyImproved);
 
+    /*getters*/
+    vector<DMatch> getMatches();
+    vector<KeyPoint> getModelMatchedKeypoints();
+    vector<KeyPoint> getFrameMatchedKeypoints();
+
+
+    /*To 3d visualize - under development*/
     void getReprojectionMatrixes(const string &intr, const string &extr, const string &k, Mat &intrinsticMatrix, Mat &extrinsicMatrix, Mat &kMatrix);
     void get2dPointsFromKeypoints(vector<KeyPoint> &keypointsFrame, vector<Vec3f> &points2d);
     void getSpatialCoordinates(Mat &intr, Mat &extr, vector<Vec3f> &points2d, vector<Vec3f> &points3d);
     void pcshow(vector<Vec3f> &points3d);
 
 private:
-    Ptr<Feature2D> detector;
-    Ptr<Feature2D> descriptor;
-
     void readMatrixFromFile(const string& path, const int cols, Mat &out);
     Mat getOnePointDescriptors(int index);
     bool isInParalellgoram(KeyPoint kp, vector<Point2f> &figure);
@@ -97,5 +104,4 @@ private:
     Point2f* setupDestinationPoints(Point2f *pointsSrc, TransformPoints points, int factor);
     Point2f* cpyArray(Point2f *in, int size);
 };
-
 #endif

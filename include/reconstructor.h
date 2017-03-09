@@ -65,6 +65,7 @@ public:
     Reconstructor();
     ~Reconstructor();
     void init();
+    void deform();
     void drawRefMesh(Mat &inputImg);
 };
 

@@ -176,16 +176,6 @@ void KpMatcher::drawFoundMatches(Mat &img1, Mat &img2, const string &windowName,
     waitKey(0);
 }
 
-//void KpMatcher::drawAllMatches(Mat &img1, Mat &img2, const string &windowName)
-//{
-//    Mat temp1, temp2, imgMatches;
-//    img1.copyTo(temp1);
-//    img2.copyTo(temp2);
-//    drawMatches(temp1, this->keypoints[0], temp2, this->keypointsFrame, this->goodMatches, imgMatches);
-//    imshow(windowName, imgMatches);
-//    waitKey(0);
-//}
-
 void KpMatcher::getReprojectionMatrixes(const string &intr, const string &extr, const string &k, Mat &intrinsticMatrix, Mat &extrinsicMatrix, Mat &kMatrix)
 {
     readMatrixFromFile(intr, 3, intrinsticMatrix);
@@ -268,6 +258,20 @@ void KpMatcher::pcshow(vector<Vec3f> &points3d)
     }
 }
 
+vector<DMatch> KpMatcher::getMatches()
+{
+    return this->goodMatches;
+}
+
+vector<KeyPoint> KpMatcher::getModelMatchedKeypoints()
+{
+    return this->keypoints[0];
+}
+
+vector<KeyPoint> KpMatcher::getFrameMatchedKeypoints()
+{
+    return this->keypointsFrame;
+}
 
 
 
