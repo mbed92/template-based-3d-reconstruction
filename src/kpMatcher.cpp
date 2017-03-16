@@ -11,6 +11,7 @@ Mat KpMatcher::readImage(const string &name, ImreadModes mode)
         cerr << "Error while loading an image " << name << endl;
         abort();
     }
+    resize(img, img, Size(640, 480));
     cout << "Image " << name << " properly loaded" << endl;
     return img;
 }

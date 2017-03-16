@@ -1,9 +1,11 @@
 /*********************************************************************/
+/*                                                                   */
 /* BASED ON:                                                         */
 /* Template-Based Monocular 3D Shape Recovery Using Laplacian Meshes */
+/*                                                                   */
 /*********************************************************************/
 
-/*~~~~~~~~~~GENERAL EPFL 3D RECONSTRUCTION ALGHORITM~~~~~~~~~~*/
+/*~~~~~~~~~~ GENERAL EPFL 3D RECONSTRUCTION ALGHORITM (I hope I understand that...) ~~~~~~~~~~*/
 //  - load 3d mesh from file
 //  - do matching between 2D images
 //  - pick inliers indexes
@@ -16,14 +18,13 @@
 //      - update edges (which means to get Z coordinate)
 //      - set vertex coordinates again (resMesh.SetVertexCoords(scale * paramMat * matC))
 //  - optimize using control points (ReconstructIneqConstr)
-//      - TODO
+//      - TODO: describe optimization step
 
 #ifndef _RECONSTRUCTOR_H_
 #define _RECONSTRUCTOR_H_
 
 #include <iostream>
-#include <time.h>
-
+#include <iomanip>
 #include <armadillo>
 
 #include "opencv2/core/core.hpp"
@@ -32,11 +33,15 @@
 #include "opencv2/opencv.hpp"
 #include "opencv2/xfeatures2d.hpp"
 #include "opencv2/calib3d.hpp"
+#include <GLFW/glfw3.h>
+#include <GL/glu.h>
 
 #include "../epfl/Mesh/LaplacianMesh.h"
-#include "../epfl/Camera.h"
+#include "../epfl/Linear/ObjectiveFunction.h"
+#include "../epfl/Linear/IneqConstrFunction.h"
+#include "../epfl/Linear/IneqConstrOptimize.h"
 
-#include <iomanip>
+#include "../epfl/Camera.h"
 
 using namespace std;
 using namespace cv;
@@ -55,18 +60,67 @@ private:
     arma::urowvec ctrPointIds;      			// Set of control points
 
     Camera modelCamCamera, modelWorldCamera;    // Camera coordinates
-    Mat refImg, inputImg;                       // Reference image and input image
+    Mat refImg, inputImg, img;                       // Reference image and input image
+
+    arma::mat matchesAll, matchesInlier;
+    arma::uvec inlierMatchIdxs;
+
+    arma::mat  			bary3DRefKeypoints;
+    vector<bool> 		existed3DRefKeypoints;		// To indicate a feature points lies on the reference mesh.
+
+    arma::mat Minit;			// Correspondence matrix M given all initial matches: MX = 0
+    arma::mat MPinit;			// Precomputed matrix MP in the term ||MPc|| + wr * ||APc||
+                                        // M, MP will be computed w.r.t input matches
+
+    arma::mat MPwAP;			// Matrix [MP; wr*AP]. Stored for later use in constrained reconstruction
+
+    arma::mat APtAP;			// Precomputed (AP)'*(AP): only need to be computed once
+    arma::mat MPwAPtMPwAP;      // Precomputed (MPwAP)' * MPwAP used in eigen value decomposition
+
+    double			wrInit;					  // Initial weight of deformation penalty term ||AX||
+    double			radiusInit;				// Initial radius of robust estimator
+    int				nUncstrIters;			// Number of iterations for unconstrained reconstruction
+
+    float			timeSmoothAlpha;	// Temporal consistency weight
+
+    bool			useTemporal;			  // Use temporal consistency or not
+    bool			usePrevFrameToInit;	// Use the reconstruction in the previous frame to
+                                                      // initalize the constrained recontruction in the current frame
+
+    static const double ROBUST_SCALE;	// Each iteration of unconstrained reconstruction: decrease by this factor
+    static const int DETECT_THRES;
+
+    vector<KeyPoint> kpModel, kpInput;
+
+    IneqConstrOptimize ineqConstrOptimize;	// Due to accumulation of ill-conditioned errors.
+
+private:
+
 
 public:
     LaplacianMesh *refMesh, resMesh;    		// Select planer or non-planer reference mesh
 
-
 public:
     Reconstructor();
     ~Reconstructor();
-    void init();
+    void init(Mat &image);
+    void prepareMatches(vector<DMatch> &matches, vector<KeyPoint> &kp1, vector<KeyPoint> &kp2);
     void deform();
-    void drawRefMesh(Mat &inputImg);
+    void unconstrainedReconstruction();
+    bool find3DPointOnMesh(const Point2d& refPoint, arma::rowvec& intersectionPoint);
+    arma::vec findIntersectionRayTriangle(const arma::vec& source, const arma::vec& destination, const arma::mat& vABC);
+    void drawMesh(Mat &inputImg);
+    void buildCorrespondenceMatrix( const arma::mat& matches );
+    void reconstructPlanarUnconstr(const arma::uvec& matchIdxs, double wr , LaplacianMesh &resMesh);
+    void computeCurrentMatrices( const arma::uvec& matchIdxs, double wr );
+    arma::vec computeReprojectionErrors( const TriangleMesh& trigMesh, const arma::mat& matchesInit, const arma::uvec& currentMatchIdxs );
+    void ReconstructIneqConstr( const arma::vec& cInit, LaplacianMesh& resMesh );
+    void openGLproj();
+
+    // Get precomputed current MPwAP
+    const arma::mat& GetMPwAP() const {
+        return this->MPwAP;
+    }
 };
 
 #endif

@@ -23,7 +23,10 @@ set(SOURCES main.cpp
     epfl/Camera.cpp
     epfl/Mesh/LaplacianMesh.cpp
     epfl/Mesh/TriangleMesh.cpp
-    epfl/Linear/LinearAlgebraUtils.cpp)
+    epfl/Linear/LinearAlgebraUtils.cpp
+    epfl/Linear/ObjectiveFunction.cpp
+    epfl/Linear/IneqConstrFunction.cpp
+    epfl/Linear/IneqConstrOptimize.cpp)
 
 set(HEADER_FILES
     include/kpMatcher.h
@@ -32,7 +35,10 @@ set(HEADER_FILES
     epfl/Camera.h
     epfl/Mesh/LaplacianMesh.h
     epfl/Mesh/TriangleMesh.h
-    epfl/Linear/LinearAlgebraUtils.h)
+    epfl/Linear/LinearAlgebraUtils.h
+    epfl/Linear/ObjectiveFunction.h
+    epfl/Linear/IneqConstrFunction.h
+    epfl/Linear/IneqConstrOptimize.h)
 
 set (CMAKE_CXX_FLAGS "-O2 -march=native" )
 

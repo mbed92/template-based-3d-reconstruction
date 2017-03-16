@@ -21,7 +21,7 @@ int main()
 
     /*matching*/
     kpm->findCurrentMatches(NORM_L2, true, 0.8);
-    kpm->improveBadMatches(NORM_L2, true, 0.7);
+    //kpm->improveBadMatches(NORM_L2, true, 0.7);
 
     /*visualize*/
     //kpm->drawFoundMatches(img, frame, "All matches", false);
@@ -30,15 +30,25 @@ int main()
 
 
 
+
     /*~~~~~~~~~~~~~~~~~~~~~ 3D reconstruction (EPFL) ~~~~~~~~~~~~~~~~~~~~~~~~~*/
-    Reconstructor *rec = new Reconstructor();
-    rec->init();
-    rec->deform();  //dummy method
-    rec->drawRefMesh(img);
+    Ptr<Reconstructor> rec = new Reconstructor();
+    rec->init(img);
+
+    vector<DMatch> matches = kpm->getMatches();
+    vector<KeyPoint> kp1 = kpm->getModelMatchedKeypoints();
+    vector<KeyPoint> kp2 = kpm->getFrameMatchedKeypoints();
+
+    rec->prepareMatches(matches, kp1, kp2);
+    rec->deform();
+    //rec->openGLproj();
+    rec->drawMesh(frame);
+
 
 
 
 
     kpm.release();
+    rec.release();
     return EXIT_SUCCESS;
 }
