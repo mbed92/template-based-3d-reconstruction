@@ -50,6 +50,7 @@ class Reconstructor
 {
 private:
     // Path and file names
+    string dummy;
     string modelCamIntrFile;					// Camera used for building the model
     string modelCamExtFile;
     string trigFile;
@@ -95,10 +96,21 @@ private:
     IneqConstrOptimize ineqConstrOptimize;	// Due to accumulation of ill-conditioned errors.
 
 private:
-
+    void unconstrainedReconstruction();
+    bool find3DPointOnMesh(const Point2d& refPoint, arma::rowvec& intersectionPoint);
+    arma::vec findIntersectionRayTriangle(const arma::vec& source, const arma::vec& destination, const arma::mat& vABC);
+    void buildCorrespondenceMatrix( const arma::mat& matches );
+    void reconstructPlanarUnconstr(const arma::uvec& matchIdxs, double wr , LaplacianMesh &resMesh);
+    void computeCurrentMatrices( const arma::uvec& matchIdxs, double wr );
+    arma::vec computeReprojectionErrors( const TriangleMesh& trigMesh, const arma::mat& matchesInit, const arma::uvec& currentMatchIdxs );
+    void ReconstructIneqConstr( const arma::vec& cInit, LaplacianMesh& resMesh );
+    const arma::mat& GetMPwAP() const
+    {
+        return this->MPwAP;
+    }
 
 public:
-    LaplacianMesh *refMesh, resMesh;    		// Select planer or non-planer reference mesh
+    LaplacianMesh *compMesh, *refMesh, resMesh;
 
 public:
     Reconstructor();
@@ -106,21 +118,10 @@ public:
     void init(Mat &image);
     void prepareMatches(vector<DMatch> &matches, vector<KeyPoint> &kp1, vector<KeyPoint> &kp2);
     void deform();
-    void unconstrainedReconstruction();
-    bool find3DPointOnMesh(const Point2d& refPoint, arma::rowvec& intersectionPoint);
-    arma::vec findIntersectionRayTriangle(const arma::vec& source, const arma::vec& destination, const arma::mat& vABC);
-    void drawMesh(Mat &inputImg);
-    void buildCorrespondenceMatrix( const arma::mat& matches );
-    void reconstructPlanarUnconstr(const arma::uvec& matchIdxs, double wr , LaplacianMesh &resMesh);
-    void computeCurrentMatrices( const arma::uvec& matchIdxs, double wr );
-    arma::vec computeReprojectionErrors( const TriangleMesh& trigMesh, const arma::mat& matchesInit, const arma::uvec& currentMatchIdxs );
-    void ReconstructIneqConstr( const arma::vec& cInit, LaplacianMesh& resMesh );
     void openGLproj();
-
-    // Get precomputed current MPwAP
-    const arma::mat& GetMPwAP() const {
-        return this->MPwAP;
-    }
+    void savePointCloud(bool isRefToo);
+    void drawMesh(Mat &inputImg, LaplacianMesh &mesh);
+    void evaluate3dReconstruction(string compFile);
 };
 
 #endif

@@ -20,16 +20,12 @@ int main()
     kpm->describeAndDetectFrameKeypoints(frame);
 
     /*matching*/
-    kpm->findCurrentMatches(NORM_L2, true, 0.8);
-    //kpm->improveBadMatches(NORM_L2, true, 0.7);
+    kpm->findCurrentMatches(NORM_L2, true, 0.9);
+    //kpm->improveBadMatches(NORM_L2, true, 0.8);
 
     /*visualize*/
     //kpm->drawFoundMatches(img, frame, "All matches", false);
     //kpm->drawFoundMatches(img, frame, "Only improved", true);
-
-
-
-
 
     /*~~~~~~~~~~~~~~~~~~~~~ 3D reconstruction (EPFL) ~~~~~~~~~~~~~~~~~~~~~~~~~*/
     Ptr<Reconstructor> rec = new Reconstructor();
@@ -41,12 +37,12 @@ int main()
 
     rec->prepareMatches(matches, kp1, kp2);
     rec->deform();
-    //rec->openGLproj();
-    rec->drawMesh(frame);
+//    rec->openGLproj();
+//    rec->savePointCloud(false);
+//    rec->evaluate3dReconstruction("mesh_128");
 
-
-
-
+    rec->drawMesh(img, *rec->refMesh);
+    rec->drawMesh(frame, rec->resMesh);
 
     kpm.release();
     rec.release();

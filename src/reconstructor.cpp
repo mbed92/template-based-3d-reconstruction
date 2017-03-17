@@ -6,18 +6,19 @@ const int Reconstructor::DETECT_THRES = 100;
 Reconstructor::Reconstructor()
 {
     this->refMesh = NULL;
+    this->compMesh = NULL;
     modelCamIntrFile	= "cam.intr";
     modelCamExtFile		= "cam.ext";
     trigFile			= "mesh";
     refImgFile			= "model.png";
     imCornerFile		= "im_corners.txt";
     ctrlPointsFile      = "ControlPointIDs.txt";
-
 }
 
 Reconstructor::~Reconstructor()
 {
     delete this->refMesh;
+    delete this->compMesh;
 }
 
 void Reconstructor::init(Mat &image)
@@ -395,16 +396,16 @@ void Reconstructor::computeCurrentMatrices( const arma::uvec& matchIdxs, double 
     MPwAPtMPwAP = currentMP.t() * currentMP + wr*wr * this->APtAP;
 }
 
-void Reconstructor::drawMesh(Mat &inputImg)
+void Reconstructor::drawMesh(Mat &inputImg, LaplacianMesh &mesh)
 {
-    arma::mat projPoints = this->modelCamCamera.ProjectPoints(this->resMesh.GetVertexCoords());
+    arma::mat projPoints = this->modelCamCamera.ProjectPoints(mesh.GetVertexCoords());
 
     // Drawing mesh on image
     if (this->inlierMatchIdxs.n_rows > 100)
     {
-        const arma::umat& edges = this->resMesh.GetEdges();
+        const arma::umat& edges = mesh.GetEdges();
         Mat img = inputImg.clone();
-        for (int i = 0; i < this->resMesh.GetNEdges(); i++)
+        for (int i = 0; i < mesh.GetNEdges(); i++)
         {
             int vid1 = edges(0, i);		// Vertex id 1
             int vid2 = edges(1, i);		// Vertex id 2
@@ -419,6 +420,60 @@ void Reconstructor::drawMesh(Mat &inputImg)
         namedWindow("test", WINDOW_AUTOSIZE);
         imshow("test", img);
         waitKey(0);
+    }
+}
+
+void Reconstructor::evaluate3dReconstruction(string compFile)
+{
+    this->compMesh = new LaplacianMesh();
+    compMesh->Load(compFile);
+    compMesh->TransformToCameraCoord(modelWorldCamera);		// Convert the mesh into camera coordinate using world camera
+    compMesh->SetCtrlPointIDs(ctrPointIds);
+//    compMesh->ComputeAPMatrices();
+//    compMesh->computeFacetNormalsNCentroids();
+}
+
+void Reconstructor::savePointCloud(bool isRefToo)
+{
+    arma::mat toSaveMAt = this->resMesh.GetVertexCoords();
+    ofstream os;
+    os.open("resMeshPointCloud.ply");
+    os << "ply\r\n";
+    os << "format ascii 1.0\r\n";
+    os << "element vertex " << toSaveMAt.n_rows << "\r\n";
+    os << "property double x\r\n";
+    os << "property double y\r\n";
+    os << "property double z\r\n";
+    os << "end_header\r\n";
+    for(int i = 0; i < toSaveMAt.n_rows; i++)
+    {
+        os << std::fixed << std::setprecision(6)
+           << toSaveMAt.row(i)[0] << " "
+           << toSaveMAt.row(i)[1] << " "
+           << toSaveMAt.row(i)[2] << "\r\n";
+    }
+    os.close();
+
+    if(isRefToo)
+    {
+        arma::mat refToSaveMat = this->refMesh->GetVertexCoords();
+        ofstream refOs;
+        refOs.open("refMeshPointCloud.ply");
+        refOs << "ply\r\n";
+        refOs << "format ascii 1.0\r\n";
+        refOs << "element vertex " << refToSaveMat.n_rows << "\r\n";
+        refOs << "property double x\r\n";
+        refOs << "property double y\r\n";
+        refOs << "property double z\r\n";
+        refOs << "end_header\r\n";
+        for(int i = 0; i < refToSaveMat.n_rows; i++)
+        {
+            refOs  << std::fixed << std::setprecision(6)
+                   << refToSaveMat.row(i)[0] << " "
+                   << refToSaveMat.row(i)[1] << " "
+                   << refToSaveMat.row(i)[2] << "\r\n";
+        }
+        refOs.close();
     }
 }
 
