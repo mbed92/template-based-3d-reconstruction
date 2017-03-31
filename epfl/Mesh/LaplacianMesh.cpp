@@ -91,9 +91,13 @@ void LaplacianMesh::computeParamMatrix()
 	// regMat * P = 0 with constraints Pc * P = I, I: identity
 	mat I = eye(this->GetNCtrlPoints(), this->GetNCtrlPoints());
 	mat Z = zeros(this->regMat.n_rows, this->GetNCtrlPoints());
-	this->paramMat = LinearAlgebraUtils::SolveWithConstraints(regMat, Z, Pc, I);
+    this->paramMat = LinearAlgebraUtils::SolveWithConstraints(regMat, Z, Pc, I);
+    // regMat - A
+    // paramMat = P
+    // vertices - c
 
-	/// Update the bigParamMat
+
+    /// Update the bigParamMat -> kronecker product - generalization of outer product -> tensor
 	this->bigParamMat = kron( eye(3,3), paramMat );
 }
 

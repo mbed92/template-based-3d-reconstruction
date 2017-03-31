@@ -57,8 +57,10 @@ private:
     string refImgFile;
     string imCornerFile;
     string ctrlPointsFile;
+    string ctrlPointsCompFile;
 
     arma::urowvec ctrPointIds;      			// Set of control points
+    arma::urowvec ctrPointCompIds;      			// Set of control points
 
     Camera modelCamCamera, modelWorldCamera;    // Camera coordinates
     Mat refImg, inputImg, img;                       // Reference image and input image
@@ -119,7 +121,7 @@ public:
     void prepareMatches(vector<DMatch> &matches, vector<KeyPoint> &kp1, vector<KeyPoint> &kp2);
     void deform();
     void openGLproj();
-    void savePointCloud(bool isRefToo);
+    void savePointCloud(string fileName);
     void drawMesh(Mat &inputImg, LaplacianMesh &mesh);
     void evaluate3dReconstruction(string compFile);
 };

@@ -71,7 +71,7 @@ void KpMatcher::describeAndDetectFrameKeypoints(Mat &frame)
     this->descriptor->compute( frame, keypointsFrame, descriptorsFrame );
 }
 
-void KpMatcher::findCurrentMatches(NormTypes norm, bool isFlann, const float ratio)
+void KpMatcher::findCurrentMatches(NormTypes norm, bool isFlann, const float &ratio)
 {
     DescriptorMatcher* matcher;
     if(isFlann)
@@ -113,8 +113,9 @@ Mat KpMatcher::getOnePointDescriptors(int index)
     return temp;
 }
 
-void KpMatcher::improveBadMatches(NormTypes norm, bool isFlann, const float ratio)
+void KpMatcher::improveBadMatches(NormTypes norm, bool isFlann, const float &ratio)
 {
+    cout << "RATIO: " << ratio << endl;
     DescriptorMatcher* matcher;
     if(isFlann)
     {
@@ -155,25 +156,29 @@ void KpMatcher::improveBadMatches(NormTypes norm, bool isFlann, const float rati
     }
 }
 
-void KpMatcher::drawFoundMatches(Mat &img1, Mat &img2, const string &windowName, bool drawOnlyImproved)
+void KpMatcher::drawFoundMatches(Mat &img1, Mat &img2, const string &windowName, bool drawOnlyImproved, string fileName)
 {
+    fileName = fileName + ".png";
     Mat temp1, temp2, imgMatches;
     img1.copyTo(temp1);
     img2.copyTo(temp2);
     if(drawOnlyImproved && !this->improvementMatches.empty() )
     {
         drawMatches(temp1, this->keypoints[0], temp2, this->keypointsFrame, this->improvementMatches, imgMatches);
+        cout << "Size of improved matches: " <<  this->improvementMatches.size() << endl;
     }
     else if(!drawOnlyImproved)
     {
         drawMatches(temp1, this->keypoints[0], temp2, this->keypointsFrame, this->goodMatches, imgMatches);
+        cout << "Size of all matches: " <<  this->goodMatches.size() << endl;
     }
     else
     {
         cerr << "Cannot show matches. Check if you performed improvement matches process." << endl;
         return;
     }
-    imshow(windowName, imgMatches);
+    //imshow(windowName, imgMatches);
+    imwrite( fileName, imgMatches );
     waitKey(0);
 }
 

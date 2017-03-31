@@ -21,10 +21,6 @@
 #include <GL/gl.h>
 #include <GL/glu.h>
 
-#include <fstream>
-#include <sstream>
-#include <string>
-
 #define NPOINTS 4
 
 using namespace std;
@@ -73,9 +69,9 @@ public:
     Mat readImage(const string &name, ImreadModes mode);
     void init(Mat &img, bool isChessboardPresent);
     void describeAndDetectFrameKeypoints(Mat &frame);
-    void findCurrentMatches(NormTypes norm, bool isFlann, const float ratio);
-    void improveBadMatches(NormTypes norm, bool isFlann, const float ratio);
-    void drawFoundMatches(Mat &img1, Mat &img2, const string &windowName, bool drawOnlyImproved);
+    void findCurrentMatches(NormTypes norm, bool isFlann, const float &ratio);
+    void improveBadMatches(NormTypes norm, bool isFlann, const float &ratio);
+    void drawFoundMatches(Mat &img1, Mat &img2, const string &windowName, bool drawOnlyImproved, string fileName);
 
     /*getters*/
     vector<DMatch> getMatches();

@@ -13,12 +13,14 @@ Reconstructor::Reconstructor()
     refImgFile			= "model.png";
     imCornerFile		= "im_corners.txt";
     ctrlPointsFile      = "ControlPointIDs.txt";
+    ctrlPointsCompFile      = "ControlPointIDsComp.txt";
 }
 
 Reconstructor::~Reconstructor()
 {
     delete this->refMesh;
     delete this->compMesh;
+    this->resMesh;
 }
 
 void Reconstructor::init(Mat &image)
@@ -48,16 +50,23 @@ void Reconstructor::init(Mat &image)
 
 void Reconstructor::deform()
 {
-    //step 1
-    unconstrainedReconstruction();
-
-    //step 2
-    // ============== Constrained Optimization =======================
-    this->matchesInlier = this->matchesAll.rows(this->inlierMatchIdxs);
-    if (this->inlierMatchIdxs.n_rows > DETECT_THRES)
+    try
     {
-        arma::vec cInit = reshape( resMesh.GetCtrlVertices(), resMesh.GetNCtrlPoints()*3, 1 );	// x1 x2..y1 y2..z1 z2..
-        ReconstructIneqConstr(cInit, resMesh);
+        //step 1
+        unconstrainedReconstruction();
+
+        //step 2
+        // ============== Constrained Optimization =======================
+        this->matchesInlier = this->matchesAll.rows(this->inlierMatchIdxs);
+        if (this->inlierMatchIdxs.n_rows > DETECT_THRES)
+        {
+            arma::vec cInit = reshape( resMesh.GetCtrlVertices(), resMesh.GetNCtrlPoints()*3, 1 );	// x1 x2..y1 y2..z1 z2..
+            ReconstructIneqConstr(cInit, resMesh);
+        }
+    }
+    catch(exception &e)
+    {
+        cerr << e.what() << endl;
     }
 }
 
@@ -425,55 +434,36 @@ void Reconstructor::drawMesh(Mat &inputImg, LaplacianMesh &mesh)
 
 void Reconstructor::evaluate3dReconstruction(string compFile)
 {
+    ctrPointCompIds.load("ControlPointIDsComp.txt");
     this->compMesh = new LaplacianMesh();
     compMesh->Load(compFile);
     compMesh->TransformToCameraCoord(modelWorldCamera);		// Convert the mesh into camera coordinate using world camera
-    compMesh->SetCtrlPointIDs(ctrPointIds);
-//    compMesh->ComputeAPMatrices();
-//    compMesh->computeFacetNormalsNCentroids();
+    compMesh->SetCtrlPointIDs(ctrPointCompIds);
+    compMesh->ComputeAPMatrices();
+    compMesh->computeFacetNormalsNCentroids();
 }
 
-void Reconstructor::savePointCloud(bool isRefToo)
+void Reconstructor::savePointCloud(string fileName)
 {
-    arma::mat toSaveMAt = this->resMesh.GetVertexCoords();
+    fileName = fileName + ".txt";
     ofstream os;
-    os.open("resMeshPointCloud.ply");
-    os << "ply\r\n";
-    os << "format ascii 1.0\r\n";
-    os << "element vertex " << toSaveMAt.n_rows << "\r\n";
-    os << "property double x\r\n";
-    os << "property double y\r\n";
-    os << "property double z\r\n";
-    os << "end_header\r\n";
-    for(int i = 0; i < toSaveMAt.n_rows; i++)
+    os.open(fileName.c_str());
+    arma::mat toSaveMAt = this->resMesh.GetVertexCoords();
+    if(toSaveMAt.n_rows > 0)
     {
-        os << std::fixed << std::setprecision(6)
-           << toSaveMAt.row(i)[0] << " "
-           << toSaveMAt.row(i)[1] << " "
-           << toSaveMAt.row(i)[2] << "\r\n";
-    }
-    os.close();
-
-    if(isRefToo)
-    {
-        arma::mat refToSaveMat = this->refMesh->GetVertexCoords();
-        ofstream refOs;
-        refOs.open("refMeshPointCloud.ply");
-        refOs << "ply\r\n";
-        refOs << "format ascii 1.0\r\n";
-        refOs << "element vertex " << refToSaveMat.n_rows << "\r\n";
-        refOs << "property double x\r\n";
-        refOs << "property double y\r\n";
-        refOs << "property double z\r\n";
-        refOs << "end_header\r\n";
-        for(int i = 0; i < refToSaveMat.n_rows; i++)
+        for(int i = 0; i < toSaveMAt.n_rows; i++)
         {
-            refOs  << std::fixed << std::setprecision(6)
-                   << refToSaveMat.row(i)[0] << " "
-                   << refToSaveMat.row(i)[1] << " "
-                   << refToSaveMat.row(i)[2] << "\r\n";
+            os << std::fixed << std::setprecision(6)
+               << toSaveMAt.row(i)[0] << " "
+               << toSaveMAt.row(i)[1] << " "
+               << toSaveMAt.row(i)[2] << "\r\n";
         }
-        refOs.close();
+        os.close();
+        cout << "Saved " << fileName << endl << endl;
+    }
+    else
+    {
+        cerr << "Cannot save mesh!" << endl << endl;
     }
 }
 
@@ -484,7 +474,7 @@ void Reconstructor::openGLproj()
 
     GLFWwindow * win = glfwCreateWindow(1280, 960, "showme", NULL, NULL);
     glfwMakeContextCurrent(win);
-    arma::mat temp = this->refMesh->GetVertexCoords();
+    arma::mat temp = this->compMesh->GetVertexCoords();
 
     int rot = 0;
     while(!glfwWindowShouldClose(win))

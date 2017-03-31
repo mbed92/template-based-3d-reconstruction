@@ -1,27 +1,41 @@
 #include "include/kpMatcher.h"
 #include "include/reconstructor.h"
+#include "include/utilities.h"
+
+#include <cstdlib>
 
 using namespace std;
 using namespace cv;
 
-int main()
+string modelPath;
+string framePath;
+Ptr<Feature2D> detector;
+Ptr<Feature2D> descriptor;
+NormTypes xFeatureNorm;
+float ratio1;
+float ratio2;
+
+// ./affineDSC model_name.png frame_name.png detector descriptor ratio1 ratio2
+int main(int argc, char** argv)
 {
-    /*init data containers*/
-    Ptr<Feature2D> detector = xfeatures2d::SIFT::create();
-    Ptr<Feature2D> descriptor = xfeatures2d::SIFT::create();
+    if(argc < 7 || !setupInputParameters(argv))
+    {
+        cerr << "Usage: ./affineDSC path_to_model.png path_to_frame.png detector descriptor ratio1% ratio2% isPointCloudSaved(0 / 1)" << endl;
+        return EXIT_FAILURE;
+    }
 
     /*describe & detect model keypoints*/
     Ptr<KpMatcher> kpm = new KpMatcher(detector, descriptor);
-    Mat img = kpm->readImage("images/model.png", IMREAD_GRAYSCALE );
+    Mat img = kpm->readImage(modelPath, IMREAD_GRAYSCALE );
     kpm->init(img, true);
 
     /*describe & detect frame keypoints*/
-    Mat frame = kpm->readImage("images/frame_128.png", IMREAD_GRAYSCALE );
+    Mat frame = kpm->readImage(framePath, IMREAD_GRAYSCALE );
     kpm->describeAndDetectFrameKeypoints(frame);
 
     /*matching*/
-    kpm->findCurrentMatches(NORM_L2, true, 0.9);
-    //kpm->improveBadMatches(NORM_L2, true, 0.8);
+    kpm->findCurrentMatches(xFeatureNorm, false, ratio1);
+   // kpm->improveBadMatches(xFeatureNorm, false, ratio2);
 
     /*visualize*/
     //kpm->drawFoundMatches(img, frame, "All matches", false);
@@ -37,14 +51,21 @@ int main()
 
     rec->prepareMatches(matches, kp1, kp2);
     rec->deform();
-//    rec->openGLproj();
-//    rec->savePointCloud(false);
-//    rec->evaluate3dReconstruction("mesh_128");
 
-    rec->drawMesh(img, *rec->refMesh);
-    rec->drawMesh(frame, rec->resMesh);
+    cout << argv[7] << endl;
+    if(argv[7] == string("1"))
+    {
+        stringstream ss;
+        ss << "PC_" << getFrameNumber() << "_" << argv[5] << "_" << argv[6] << "_" << argv[3] << "_" << argv[4];
+        rec->savePointCloud(ss.str());
+        //kpm->drawFoundMatches(img, frame, "Only improved", true, ss.str());
+    }
 
-    kpm.release();
+//    rec->drawMesh(img, *rec->refMesh);
+//    rec->drawMesh(frame, rec->resMesh);
+
     rec.release();
+    kpm.release();
+
     return EXIT_SUCCESS;
 }

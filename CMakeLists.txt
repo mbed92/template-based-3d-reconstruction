@@ -20,6 +20,7 @@ find_package(OpenGL REQUIRED)
 set(SOURCES main.cpp
     src/kpMatcher.cpp
     src/reconstructor.cpp
+    src/utilities.cpp
     epfl/Camera.cpp
     epfl/Mesh/LaplacianMesh.cpp
     epfl/Mesh/TriangleMesh.cpp
@@ -32,6 +33,7 @@ set(HEADER_FILES
     include/kpMatcher.h
     include/utilities.h
     include/reconstructor.h
+    include/utilities.h
     epfl/Camera.h
     epfl/Mesh/LaplacianMesh.h
     epfl/Mesh/TriangleMesh.h
