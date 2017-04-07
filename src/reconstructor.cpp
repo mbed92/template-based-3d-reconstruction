@@ -405,8 +405,10 @@ void Reconstructor::computeCurrentMatrices( const arma::uvec& matchIdxs, double 
     MPwAPtMPwAP = currentMP.t() * currentMP + wr*wr * this->APtAP;
 }
 
-void Reconstructor::drawMesh(Mat &inputImg, LaplacianMesh &mesh)
+void Reconstructor::drawMesh(Mat &inputImg, LaplacianMesh &mesh, string fileName)
 {
+    fileName = fileName + ".png";
+
     arma::mat projPoints = this->modelCamCamera.ProjectPoints(mesh.GetVertexCoords());
 
     // Drawing mesh on image
@@ -426,8 +428,10 @@ void Reconstructor::drawMesh(Mat &inputImg, LaplacianMesh &mesh)
             line( img, pt1, pt2, CV_RGB(255, 0 ,0) );
         }
 
-        namedWindow("test", WINDOW_AUTOSIZE);
-        imshow("test", img);
+        //namedWindow("test", WINDOW_AUTOSIZE);
+        imwrite(fileName, img);
+        //imshow("test", img);
+
         waitKey(0);
     }
 }

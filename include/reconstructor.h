@@ -122,7 +122,7 @@ public:
     void deform();
     void openGLproj();
     void savePointCloud(string fileName);
-    void drawMesh(Mat &inputImg, LaplacianMesh &mesh);
+    void drawMesh(Mat &inputImg, LaplacianMesh &mesh, string fileName);
     void evaluate3dReconstruction(string compFile);
 };
 

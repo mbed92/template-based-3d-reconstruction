@@ -31,11 +31,12 @@ int main(int argc, char** argv)
 
     /*describe & detect frame keypoints*/
     Mat frame = kpm->readImage(framePath, IMREAD_GRAYSCALE );
-    kpm->describeAndDetectFrameKeypoints(frame);
+    float seconds;
+    kpm->describeAndDetectFrameKeypoints(frame, seconds);
 
     /*matching*/
     kpm->findCurrentMatches(xFeatureNorm, false, ratio1);
-   // kpm->improveBadMatches(xFeatureNorm, false, ratio2);
+    kpm->improveBadMatches(xFeatureNorm, false, ratio2);
 
     /*visualize*/
     //kpm->drawFoundMatches(img, frame, "All matches", false);
@@ -52,13 +53,18 @@ int main(int argc, char** argv)
     rec->prepareMatches(matches, kp1, kp2);
     rec->deform();
 
-    cout << argv[7] << endl;
     if(argv[7] == string("1"))
     {
         stringstream ss;
         ss << "PC_" << getFrameNumber() << "_" << argv[5] << "_" << argv[6] << "_" << argv[3] << "_" << argv[4];
-        rec->savePointCloud(ss.str());
-        //kpm->drawFoundMatches(img, frame, "Only improved", true, ss.str());
+        rec->savePointCloud(ss.str());  // save point cloud
+        rec->drawMesh(frame, rec->resMesh, ss.str() );  //save mesh
+
+        //save matches
+        ofstream outfile;
+        outfile.open("matches.txt", std::ios_base::app);
+        outfile << ss.str() << " " << kpm->getMatches().size() << " " << seconds << endl;
+        outfile.close();
     }
 
 //    rec->drawMesh(img, *rec->refMesh);

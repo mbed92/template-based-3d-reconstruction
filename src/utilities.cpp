@@ -9,35 +9,89 @@ string toString(char *inputCstr)
 
 void getXFeature2d(char *inputCstr, bool isDescriptor)
 {
-    if(inputCstr = "sift")
+    if(inputCstr == string("sift"))
     {
-        xFeatureNorm = NORM_L2;
-        isDescriptor ? descriptor = xfeatures2d::SIFT::create() : detector = xfeatures2d::SIFT::create();
+        if(isDescriptor)
+        {
+            cout << "Descriptor SIFT choosed." << endl;
+            xFeatureNorm = NORM_L2;
+            descriptor = xfeatures2d::SIFT::create();
+        }
+        else
+        {
+            cout << "Detector SIFT choosed." << endl;
+            detector = xfeatures2d::SIFT::create();
+        }
     }
-    else if(inputCstr = "surf")
+    else if(inputCstr == string("surf"))
     {
-        xFeatureNorm = NORM_L2;
-        isDescriptor ? descriptor = xfeatures2d::SURF::create() : detector = xfeatures2d::SURF::create();
+        if(isDescriptor)
+        {
+            cout << "Descriptor SURF choosed." << endl;
+            xFeatureNorm = NORM_L2;
+            descriptor = xfeatures2d::SURF::create();
+        }
+        else
+        {
+            cout << "Detector SURF choosed." << endl;
+            detector = xfeatures2d::SURF::create();
+        }
     }
-    else if(inputCstr = "kaze")
+    else if(inputCstr == string("kaze"))
     {
-        xFeatureNorm = NORM_L2;
-        isDescriptor ? descriptor = KAZE::create() : detector = KAZE::create();
+        if(isDescriptor)
+        {
+            cout << "Descriptor KAZE choosed." << endl;
+            xFeatureNorm = NORM_L2;
+            descriptor = KAZE::create();
+        }
+        else
+        {
+            cout << "Detector KAZE choosed." << endl;
+            detector = KAZE::create();
+        }
     }
-    else if(inputCstr = "akaze")
+    else if(inputCstr == string("akaze"))
     {
-        xFeatureNorm = NORM_L2;
-        isDescriptor ? descriptor = AKAZE::create() : detector = AKAZE::create();
+        if(isDescriptor)
+        {
+            cout << "Descriptor AKAZE choosed." << endl;
+            xFeatureNorm = NORM_L2;
+            descriptor = AKAZE::create();
+        }
+        else
+        {
+            cout << "Detector AKAZE choosed." << endl;
+            detector = AKAZE::create();
+        }
     }
-    else if(inputCstr = "brisk")
+    else if(inputCstr == string("brisk"))
     {
-        xFeatureNorm = NORM_HAMMING2;
-        isDescriptor ? descriptor = BRISK::create() : detector = BRISK::create();
+        if(isDescriptor)
+        {
+            cout << "Descriptor BRISK choosed." << endl;
+            xFeatureNorm = NORM_HAMMING2;
+            descriptor = BRISK::create();
+        }
+        else
+        {
+            cout << "Detector BRISK choosed." << endl;
+            detector = BRISK::create();
+        }
     }
-    else if(inputCstr = "orb")
+    else if(inputCstr == string("orb"))
     {
-        xFeatureNorm = NORM_HAMMING2;
-        isDescriptor ? descriptor = ORB::create() : detector = ORB::create();
+        if(isDescriptor)
+        {
+            cout << "Descriptor ORB choosed." << endl;
+            xFeatureNorm = NORM_HAMMING2;
+            descriptor = ORB::create();
+        }
+        else
+        {
+            cout << "Detector ORB choosed." << endl;
+            detector = ORB::create();
+        }
     }
 }
 
@@ -60,15 +114,15 @@ bool setupInputParameters(char **argv)
     framePath = toString(argv[2]);
 
     //detector && descriptor
-    getXFeature2d(argv[3], true);
-    getXFeature2d(argv[4], false);
+    getXFeature2d(argv[3], false);
+    getXFeature2d(argv[4], true);
 
     //ratio1 && ratio2
     ratio1 = setupRatio(argv[5]);
     ratio2 = setupRatio(argv[6]);
 
     //validate
-    if( detector.empty() || modelPath.empty() || framePath.empty() || ratio1 < 0 || ratio2 < 0 || ratio1 > 1 || ratio2 > 1)
+    if( detector.empty() || descriptor.empty() || modelPath.empty() || framePath.empty() || ratio1 < 0 || ratio2 < 0 || ratio1 > 1 || ratio2 > 1)
     {
         return false;
     }

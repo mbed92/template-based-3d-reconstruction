@@ -65,10 +65,15 @@ void KpMatcher::init(Mat &img, bool isChessboardPresent)
     }
 }
 
-void KpMatcher::describeAndDetectFrameKeypoints(Mat &frame)
+void KpMatcher::describeAndDetectFrameKeypoints(Mat &frame, float &seconds)
 {
+    clock_t t;
+    t = clock();
     this->detector->detect(frame, keypointsFrame);
     this->descriptor->compute( frame, keypointsFrame, descriptorsFrame );
+    t = clock() - t;
+    seconds = ((float)t) / CLOCKS_PER_SEC;
+
 }
 
 void KpMatcher::findCurrentMatches(NormTypes norm, bool isFlann, const float &ratio)
@@ -141,8 +146,8 @@ void KpMatcher::improveBadMatches(NormTypes norm, bool isFlann, const float &rat
         {
             Mat desc2;
             desc2.push_back(this->descriptorsFrame.row(comparedFotoIdx));
-            matcher->knnMatch( desc2, onePointDesc, potentialMatches, 1 );
-            if(!potentialMatches.empty() && potentialMatches[0][0].distance < ratio * originalDistance)
+            matcher->knnMatch( desc2, onePointDesc, potentialMatches, 2 );
+            if(!potentialMatches.empty() && potentialMatches[0][0].distance < ratio * potentialMatches[0][1].distance)
             {
                 cout << "Improved - keypoint nr " << this->badMatches[i].queryIdx << ", new distance: " << potentialMatches[0][0].distance << ", old: " << originalDistance << endl;
                 badMatches[i].distance = potentialMatches[0][0].distance;
@@ -156,9 +161,9 @@ void KpMatcher::improveBadMatches(NormTypes norm, bool isFlann, const float &rat
     }
 }
 
-void KpMatcher::drawFoundMatches(Mat &img1, Mat &img2, const string &windowName, bool drawOnlyImproved, string fileName)
+void KpMatcher::drawFoundMatches(Mat &img1, Mat &img2, const string &windowName, bool drawOnlyImproved/*, string fileName*/)
 {
-    fileName = fileName + ".png";
+    //fileName = fileName + ".png";
     Mat temp1, temp2, imgMatches;
     img1.copyTo(temp1);
     img2.copyTo(temp2);
@@ -170,15 +175,17 @@ void KpMatcher::drawFoundMatches(Mat &img1, Mat &img2, const string &windowName,
     else if(!drawOnlyImproved)
     {
         drawMatches(temp1, this->keypoints[0], temp2, this->keypointsFrame, this->goodMatches, imgMatches);
+        cout << "Size of all keypoints: " <<  this->keypoints[0].size() << endl;
         cout << "Size of all matches: " <<  this->goodMatches.size() << endl;
+
     }
     else
     {
         cerr << "Cannot show matches. Check if you performed improvement matches process." << endl;
         return;
     }
-    //imshow(windowName, imgMatches);
-    imwrite( fileName, imgMatches );
+    imshow(windowName, imgMatches);
+    //imwrite( fileName, imgMatches );
     waitKey(0);
 }
 
