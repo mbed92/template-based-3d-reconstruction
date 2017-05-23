@@ -14,6 +14,11 @@ http://cvlab.epfl.ch/files/content/sites/cvlab2/files/publications/publications/
 - Usage: ./affineDSC path_to_model.png path_to_frame.png detector descriptor ratio1% ratio2% isPointCloudSaved(0 / 1)
 
 # RESULTS:
+- All matches found:
 ![All matches found](https://raw.githubusercontent.com/mbed92/ASIFTplusplus/master/PC_056_80_90_sift_sift_all.png)
+
+- Displacement of added keypoints:
 ![Displacement of improved keypoints](https://raw.githubusercontent.com/mbed92/ASIFTplusplus/master/PC_056_80_90_sift_sift_disp.png)
+
+- Position of added keypoints:
 ![Added matches](https://raw.githubusercontent.com/mbed92/ASIFTplusplus/master/PC_056_80_90_sift_sift_imp.png)
