@@ -29,20 +29,6 @@
 using namespace std;
 using namespace cv;
 
-enum TransformPoints
-{
-    Top,
-    TopRight,
-    Right,
-    LowRight,
-    Low,
-    LowLeft,
-    Left,
-    TopLeft,
-    First = Top,
-    Last = TopLeft
-};
-
 class KpMatcher
 {
 private:
@@ -60,6 +46,17 @@ public:
     {
         detector = detect;
         descriptor = desc;
+
+        //TODO read ROI from file
+        Point2f topLeft = Point2f(227, 100);
+        Point2f topRight = Point2f(515, 122);
+        Point2f bottomRight = Point2f(506, 367);
+        Point2f bottomLeft = Point2f(208, 343);
+        parallellogram.push_back(bottomLeft);
+        parallellogram.push_back(topLeft);
+        parallellogram.push_back(topRight);
+        parallellogram.push_back(bottomRight);
+        parallellogram.push_back(bottomLeft);
     }
 
     ~KpMatcher()
@@ -70,37 +67,26 @@ public:
 
     /*ASIFT++*/
     Mat readImage(const string &name, ImreadModes mode);
-    void init(Mat &img, bool isChessboardPresent);
-    void describeAndDetectFrameKeypoints(Mat &frame, float &seconds);
-    void findCurrentMatches(NormTypes norm, bool isFlann, const float &ratio);
-    void improveBadMatches(NormTypes norm, bool isFlann, const float &ratio);
-    void drawFoundMatches(Mat &img1, Mat &img2, const string &windowName, bool drawOnlyImproved);
+    void init(const Mat& img);
+    void describeAndDetectFrameKeypoints(const Mat& frame);
+    void findCurrentMatches(NormTypes norm, bool isFlann, const float& ratio);
+    void improveBadMatches(NormTypes norm, bool isFlann, const float& ratio);
+    void drawFoundMatches(const Mat &img1, const Mat &img2, bool drawOnlyImproved, string fileName);
+    void drawKeypointsDisplacement(const Mat &img1, const Mat &img2, string fileName);
 
     /*getters*/
     vector<DMatch> getMatches();
     vector<KeyPoint> getModelMatchedKeypoints();
     vector<KeyPoint> getFrameMatchedKeypoints();
 
-
-    /*To 3d visualize - under development*/
-    void getReprojectionMatrixes(const string &intr, const string &extr, const string &k, Mat &intrinsticMatrix, Mat &extrinsicMatrix, Mat &kMatrix);
-    void get2dPointsFromKeypoints(vector<KeyPoint> &keypointsFrame, vector<Vec3f> &points2d);
-    void getSpatialCoordinates(Mat &intr, Mat &extr, vector<Vec3f> &points2d, vector<Vec3f> &points3d);
-    void pcshow(vector<Vec3f> &points3d);
-
 private:
-    void readMatrixFromFile(const string& path, const int cols, Mat &out);
-    Mat getOnePointDescriptors(int index);
-    bool isInParalellgoram(KeyPoint kp, vector<Point2f> &figure);
-    void describeAndDetectInitKeypoints(Mat &img);
-    void describeAndDetectTransformedKeypoints(Mat &transformedImg, Mat &transformMatrix);
-    void setUpRotationMatrix(Mat in, Mat &rotationMatrix, float angle, float u, float v, float w);
-    void computeDescriptorsInProperOrder(vector<KeyPoint> &kp, Mat &d, Mat &img);
-    void getTransformationMatrixes(const string &path);
-    void findCorners(Mat &image, vector<Point2f> &corners );
+    vector<Point2f> parallellogram;
 
-    Point2f* setupSourcePoints(Mat &img);
-    Point2f* setupDestinationPoints(Point2f *pointsSrc, TransformPoints points, int factor);
-    Point2f* cpyArray(Point2f *in, int size);
+    Mat getOnePointDescriptors(int index);
+    bool isInParalellgoram(KeyPoint& kp);
+    void describeAndDetectInitKeypoints(const Mat& img);
+    void describeAndDetectTransformedKeypoints(const Mat& transformedImg, const Mat& transformMatrix);
+    void getTransformationMatrixes(const string& path);
+    void findCorners(const Mat& image, vector<Point2f>& corners );
 };
 #endif

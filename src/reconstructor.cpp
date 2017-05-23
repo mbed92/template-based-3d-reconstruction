@@ -20,7 +20,6 @@ Reconstructor::~Reconstructor()
 {
     delete this->refMesh;
     delete this->compMesh;
-    this->resMesh;
 }
 
 void Reconstructor::init(Mat &image)
@@ -220,7 +219,7 @@ void Reconstructor::prepareMatches(vector<DMatch> &matches, vector<KeyPoint> &kp
     this->bary3DRefKeypoints.set_size(matches.size(), 6);
 
     //create ref barry
-    for(int i = 0; i < matches.size(); i++)
+    for(size_t i = 0; i < matches.size(); i++)
     {
         int idx = matches[i].queryIdx;  //model
         Point2f refPoint( kp1[idx].pt.x, kp1[idx].pt.y );
@@ -236,7 +235,7 @@ void Reconstructor::prepareMatches(vector<DMatch> &matches, vector<KeyPoint> &kp
     }
 
     //matches - frame keypoints -> potential correspondence
-    for(int i = 0; i < matches.size(); i++)
+    for(size_t i = 0; i < matches.size(); i++)
     {
         if(existed3DRefKeypoints[i])
         {
@@ -455,7 +454,7 @@ void Reconstructor::savePointCloud(string fileName)
     arma::mat toSaveMAt = this->resMesh.GetVertexCoords();
     if(toSaveMAt.n_rows > 0)
     {
-        for(int i = 0; i < toSaveMAt.n_rows; i++)
+        for(size_t i = 0; i < toSaveMAt.n_rows; i++)
         {
             os << std::fixed << std::setprecision(6)
                << toSaveMAt.row(i)[0] << " "
@@ -501,7 +500,7 @@ void Reconstructor::openGLproj()
         glEnable(GL_DEPTH_TEST);
         glBegin(GL_POINTS);
 
-        for(int i = 0; i < temp.n_rows; i++)
+        for(size_t i = 0; i < temp.n_rows; i++)
         {
             //cout << temp.row(i)[0] << " " << temp.row(i)[1] << temp.row(i)[2] << endl;
             // Use the color from the nearest color pixel, or pure white if this point falls outside the color image

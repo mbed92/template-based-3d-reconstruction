@@ -56,7 +56,7 @@ void getXFeature2d(char *inputCstr, bool isDescriptor)
         if(isDescriptor)
         {
             cout << "Descriptor AKAZE choosed." << endl;
-            xFeatureNorm = NORM_L2;
+            xFeatureNorm = NORM_HAMMING2;
             descriptor = AKAZE::create();
         }
         else
@@ -122,7 +122,7 @@ bool setupInputParameters(char **argv)
     ratio2 = setupRatio(argv[6]);
 
     //validate
-    if( detector.empty() || descriptor.empty() || modelPath.empty() || framePath.empty() || ratio1 < 0 || ratio2 < 0 || ratio1 > 1 || ratio2 > 1)
+    if( detector.empty() || descriptor.empty() || modelPath.empty() || ratio1 < 0 || ratio2 < 0 || ratio1 > 1 || ratio2 > 1)
     {
         return false;
     }
