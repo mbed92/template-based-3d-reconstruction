@@ -43,17 +43,9 @@ void KpMatcher::describeAndDetectFrameKeypoints(const Mat& frame)
     this->descriptor->compute( frame, keypointsFrame, descriptorsFrame );
 }
 
-void KpMatcher::findCurrentMatches(NormTypes norm, bool isFlann, const float &ratio)
+void KpMatcher::findCurrentMatches(NormTypes norm, const float &ratio)
 {
-    DescriptorMatcher* matcher;
-    if(isFlann)
-    {
-        matcher = new FlannBasedMatcher();
-    }
-    else
-    {
-        matcher = new BFMatcher(norm);
-    }
+    DescriptorMatcher* matcher = new BFMatcher(norm);
 
     vector<vector<DMatch> > potentialMatches;
     matcher->knnMatch(this->descriptors[0], this->descriptorsFrame, potentialMatches, 2);
@@ -87,18 +79,10 @@ Mat KpMatcher::getOnePointDescriptors(int index)
     return temp;
 }
 
-void KpMatcher::improveBadMatches(NormTypes norm, bool isFlann, const float &ratio)
+void KpMatcher::improveBadMatches(NormTypes norm, const float &ratio)
 {
     cout << "RATIO: " << ratio << endl;
-    DescriptorMatcher* matcher;
-    if(isFlann)
-    {
-        matcher = new FlannBasedMatcher();
-    }
-    else
-    {
-        matcher = new BFMatcher(norm);
-    }
+    DescriptorMatcher* matcher = new BFMatcher(norm);
 
     vector<vector<DMatch> > potentialMatches;
 

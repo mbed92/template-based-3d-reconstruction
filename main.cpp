@@ -34,12 +34,11 @@ int main(int argc, char** argv)
     kpm->describeAndDetectFrameKeypoints(frame);
 
     /*matching*/
-    bool isFlann = false;
-    kpm->findCurrentMatches(xFeatureNorm, isFlann, ratio1);
+    kpm->findCurrentMatches(xFeatureNorm, ratio1);
     float seconds;
     clock_t t;
     t = clock();
-    kpm->improveBadMatches(xFeatureNorm, isFlann, ratio2);
+    kpm->improveBadMatches(xFeatureNorm, ratio2);
     t = clock() - t;
     seconds = (float)t / CLOCKS_PER_SEC;
 

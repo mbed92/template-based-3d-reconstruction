@@ -69,8 +69,8 @@ public:
     Mat readImage(const string &name, ImreadModes mode);
     void init(const Mat& img);
     void describeAndDetectFrameKeypoints(const Mat& frame);
-    void findCurrentMatches(NormTypes norm, bool isFlann, const float& ratio);
-    void improveBadMatches(NormTypes norm, bool isFlann, const float& ratio);
+    void findCurrentMatches(NormTypes norm, const float& ratio);
+    void improveBadMatches(NormTypes norm, const float& ratio);
     void drawFoundMatches(const Mat &img1, const Mat &img2, bool drawOnlyImproved, string fileName);
     void drawKeypointsDisplacement(const Mat &img1, const Mat &img2, string fileName);
 
