@@ -6,6 +6,9 @@ Descriptor based on SIFT which is robust to *out-of-plane* rotations. ASIFT prop
 - detect and describe keypoints on 2nd frame
 - match 2nd frame keypoints with _vectors_ od descriptors for keypoints from 1st frame
 
+# Focal adjustment [19.07.2017]:
+I presented novelty in adapted 3D reconstruction alghoritm (EPFL). There are alghoritms that optimize extrinsic camera parameters, but - in the knowledge of authors - noone tried to estimate the intrinsic parameters. In unconstrained reconstruction step I track displacement of reprojected points in each iteration. If the displacement in two successive iterations shows that the point is closer to the middle of the image - I assume that focal length could be a little bit too long (somehow the distance from camera is expressed as a function of focal length). For better reprojection in next iteration I adjust the focal length and make it smaller. Otherwise, this parameter is enlarged. 
+
 # Robust to in-plane rotation alghoritm (ASIFT):
 http://www.cmap.polytechnique.fr/~yu/research/ASIFT/demo.html
 
@@ -17,6 +20,9 @@ http://cvlab.epfl.ch/files/content/sites/cvlab2/files/publications/publications/
 - in _build_ folder prepare folder _images_ and create here _chessboard.txt_ wher you list all your chessboard files (needed for initial deformation) - examplary images are in _images_ folder from this repo.
 - Paste to _build_ folder all files from dataset (EPFL): cam.ext, cam.intr, cam.tdir, ControlPointIds.txt, im_corners.txt, mesh.pts, mesh.tri, webcam.intr, world_corners.txt
 - Usage: ./affineDSC path_to_model.png path_to_frame.png detector descriptor ratio1% ratio2% isPointCloudSaved(0 / 1)
+
+# LOG:
+- [19.06.2017] Focal adjustment added + few minor improvements.
 
 # RESULTS USING SIFT:
 - All matches found:
