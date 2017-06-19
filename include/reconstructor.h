@@ -50,20 +50,18 @@ class Reconstructor
 {
 private:
     // Path and file names
-    string dummy;
-    string modelCamIntrFile;					// Camera used for building the model
+    string modelCamIntrFile;                        // Camera used for building the model
     string modelCamExtFile;
     string trigFile;
     string refImgFile;
     string imCornerFile;
     string ctrlPointsFile;
-    string ctrlPointsCompFile;
 
-    arma::urowvec ctrPointIds;      			// Set of control points
+    arma::urowvec ctrPointIds;                      // Set of control points
     arma::urowvec ctrPointCompIds;      			// Set of control points
 
-    Camera modelCamCamera, modelWorldCamera;    // Camera coordinates
-    Mat refImg, inputImg, img;                       // Reference image and input image
+    Camera modelCamCamera, modelWorldCamera;        // Camera coordinates
+    Mat refImg, inputImg, img;                      // Reference image and input image
 
     arma::mat matchesAll, matchesInlier;
     arma::uvec inlierMatchIdxs;
@@ -73,22 +71,23 @@ private:
 
     arma::mat Minit;			// Correspondence matrix M given all initial matches: MX = 0
     arma::mat MPinit;			// Precomputed matrix MP in the term ||MPc|| + wr * ||APc||
-                                        // M, MP will be computed w.r.t input matches
+                                // M, MP will be computed w.r.t input matches
 
     arma::mat MPwAP;			// Matrix [MP; wr*AP]. Stored for later use in constrained reconstruction
 
     arma::mat APtAP;			// Precomputed (AP)'*(AP): only need to be computed once
     arma::mat MPwAPtMPwAP;      // Precomputed (MPwAP)' * MPwAP used in eigen value decomposition
 
-    double			wrInit;					  // Initial weight of deformation penalty term ||AX||
+    double			wrInit;					// Initial weight of deformation penalty term ||AX||
     double			radiusInit;				// Initial radius of robust estimator
     int				nUncstrIters;			// Number of iterations for unconstrained reconstruction
 
-    float			timeSmoothAlpha;	// Temporal consistency weight
 
-    bool			useTemporal;			  // Use temporal consistency or not
-    bool			usePrevFrameToInit;	// Use the reconstruction in the previous frame to
-                                                      // initalize the constrained recontruction in the current frame
+    float			timeSmoothAlpha;        // Temporal consistency weight
+
+    bool			useTemporal;			// Use temporal consistency or not
+    bool			usePrevFrameToInit;     // Use the reconstruction in the previous frame to
+                                            // initalize the constrained recontruction in the current frame
 
     static const double ROBUST_SCALE;	// Each iteration of unconstrained reconstruction: decrease by this factor
     static const int DETECT_THRES;
@@ -96,6 +95,11 @@ private:
     vector<KeyPoint> kpModel, kpInput;
 
     IneqConstrOptimize ineqConstrOptimize;	// Due to accumulation of ill-conditioned errors.
+
+    int imgWidth, imgHeight;
+    arma::vec reprojLeft, reprojRight, reprojUp, reprojDown;
+    arma::vec diffLeft, diffRight, diffUp, diffDown;
+    bool isFocalAdjustment;
 
 private:
     void unconstrainedReconstruction();
@@ -112,18 +116,44 @@ private:
     }
 
 public:
-    LaplacianMesh *compMesh, *refMesh, resMesh;
+    LaplacianMesh *refMesh, resMesh;
 
 public:
     Reconstructor();
     ~Reconstructor();
     void init(Mat &image);
     void prepareMatches(vector<DMatch> &matches, vector<KeyPoint> &kp1, vector<KeyPoint> &kp2);
+    void setupReprojVectors();
+    void setupDisplacementVectors(const int &u, const int &u_p, const int &v, const int &v_p);
     void deform();
-    void openGLproj();
     void savePointCloud(string fileName);
     void drawMesh(Mat &inputImg, LaplacianMesh &mesh, string fileName);
-    void evaluate3dReconstruction(string compFile);
+    double getDisplacementFactor(const double &leftDisplacement, const double &rightDisplacement);
+
+    void SetNConstrainedIterations( int pNCstrIters) {
+        this->ineqConstrOptimize.SetNIterations(pNCstrIters);
+    }
+
+    void SetTimeSmoothAlpha( int pTimeSmoothAlpha) {
+        this->timeSmoothAlpha = pTimeSmoothAlpha;
+    }
+
+    void SetUseTemporal( bool useTemporal ) {
+        this->useTemporal = useTemporal;
+    }
+
+    void SetUsePrevFrameToInit( bool usePrevFrameToInit ) {
+        this->usePrevFrameToInit = usePrevFrameToInit;
+    }
+
+    void SetWrInit(double pWrInit) {
+        this->wrInit = pWrInit;
+    }
+
+    // Set mu value for inequality reconstruction
+    void SetMu(double mu) {
+        this->ineqConstrOptimize.SetMuValue(mu);
+    }
 };
 
 #endif

@@ -20,19 +20,22 @@ Mat KpMatcher::readImage(const string &name, ImreadModes mode)
 
 void KpMatcher::init(const Mat &img)
 {
-    cout << "Initialization started..." << endl;
-    getTransformationMatrixes("images/chessboard.txt");
-
     cout << "Compute descriptors for input image." << endl;
     describeAndDetectInitKeypoints(img);
 
-    for(size_t i = 0; i < this->transformationMatrixes.size(); i++)
+    if(this->isSimulatedLocalDeform)
     {
-        Mat dst = Mat::zeros( img.rows, img.cols, img.type() );
-        warpPerspective( img, dst, this->transformationMatrixes[i], Size(img.cols, img.rows));
+        cout << "Initialization started..." << endl;
+        getTransformationMatrixes("images/chessboard.txt");
 
-        cout << "Compute descriptors for affine transformation: " << i << endl;
-        describeAndDetectTransformedKeypoints(dst, this->transformationMatrixes[i]);
+        for(size_t i = 0; i < this->transformationMatrixes.size(); i++)
+        {
+            Mat dst = Mat::zeros( img.rows, img.cols, img.type() );
+            warpPerspective( img, dst, this->transformationMatrixes[i], Size(img.cols, img.rows));
+
+            cout << "Compute descriptors for affine transformation: " << i << endl;
+            describeAndDetectTransformedKeypoints(dst, this->transformationMatrixes[i]);
+        }
     }
     cout << "Initialization finished." << endl;
 }
@@ -81,38 +84,41 @@ Mat KpMatcher::getOnePointDescriptors(int index)
 
 void KpMatcher::improveBadMatches(NormTypes norm, const float &ratio)
 {
-    cout << "RATIO: " << ratio << endl;
-    DescriptorMatcher* matcher = new BFMatcher(norm);
-
-    vector<vector<DMatch> > potentialMatches;
-
-    cout << "Improve the quality of matching using affine transformations..." << endl;
-    for(size_t i = 0; i < this->badMatches.size(); i++)
+    if(this->isSimulatedLocalDeform)
     {
-        int originalFotoIdx = this->badMatches[i].queryIdx;
-        int comparedFotoIdx = this->badMatches[i].trainIdx;
-        float originalDistance = this->badMatches[i].distance;
-        Mat onePointDesc = getOnePointDescriptors(originalFotoIdx);
+        cout << "RATIO: " << ratio << endl;
+        DescriptorMatcher* matcher = new BFMatcher(norm);
 
-        //cout << "Bad Matches: " << endl << "originalFotoIdx: " << originalFotoIdx << "comparedFotoIdx: " << originalDistance << "originalDistance: " << originalDistance << "onePointDesc.size(): " << onePointDesc.size() << endl;
-        if(!onePointDesc.empty())
+        vector<vector<DMatch> > potentialMatches;
+
+        cout << "Improve the quality of matching using affine transformations..." << endl;
+        for(size_t i = 0; i < this->badMatches.size(); i++)
         {
-            Mat desc2;
-            KeyPoint to = this->keypointsFrame[comparedFotoIdx];
-            KeyPoint from = this->keypoints[0][originalFotoIdx];
-            double dist = sqrt((from.pt.x - to.pt.x) * (from.pt.x - to.pt.x) + (from.pt.y - to.pt.y) * (from.pt.y - to.pt.y));
-            desc2.push_back(this->descriptorsFrame.row(comparedFotoIdx));
-            matcher->knnMatch( desc2, onePointDesc, potentialMatches, 2 );
-            if(dist < 30 && !potentialMatches.empty() && potentialMatches[0][0].distance < ratio * potentialMatches[0][1].distance && potentialMatches[0][0].distance < originalDistance )
+            int originalFotoIdx = this->badMatches[i].queryIdx;
+            int comparedFotoIdx = this->badMatches[i].trainIdx;
+            float originalDistance = this->badMatches[i].distance;
+            Mat onePointDesc = getOnePointDescriptors(originalFotoIdx);
+
+            //cout << "Bad Matches: " << endl << "originalFotoIdx: " << originalFotoIdx << "comparedFotoIdx: " << originalDistance << "originalDistance: " << originalDistance << "onePointDesc.size(): " << onePointDesc.size() << endl;
+            if(!onePointDesc.empty())
             {
-                //cout << "Improved - keypoint nr " << this->badMatches[i].queryIdx << ", new distance: " << potentialMatches[0][0].distance << ", old: " << originalDistance << endl;
-                badMatches[i].distance = potentialMatches[0][0].distance;
-                this->goodMatches.push_back(this->badMatches[i]);
-                this->improvementMatches.push_back(this->badMatches[i]);
+                Mat desc2;
+                KeyPoint to = this->keypointsFrame[comparedFotoIdx];
+                KeyPoint from = this->keypoints[0][originalFotoIdx];
+                double dist = sqrt((from.pt.x - to.pt.x) * (from.pt.x - to.pt.x) + (from.pt.y - to.pt.y) * (from.pt.y - to.pt.y));
+                desc2.push_back(this->descriptorsFrame.row(comparedFotoIdx));
+                matcher->knnMatch( desc2, onePointDesc, potentialMatches, 2 );
+                if(dist < 30 && !potentialMatches.empty() && potentialMatches[0][0].distance < ratio * potentialMatches[0][1].distance && potentialMatches[0][0].distance < originalDistance )
+                {
+                    //cout << "Improved - keypoint nr " << this->badMatches[i].queryIdx << ", new distance: " << potentialMatches[0][0].distance << ", old: " << originalDistance << endl;
+                    badMatches[i].distance = potentialMatches[0][0].distance;
+                    this->goodMatches.push_back(this->badMatches[i]);
+                    this->improvementMatches.push_back(this->badMatches[i]);
+                }
+                potentialMatches.clear();
+                onePointDesc.release();
+                desc2.release();
             }
-            potentialMatches.clear();
-            onePointDesc.release();
-            desc2.release();
         }
     }
 }
@@ -157,7 +163,6 @@ void KpMatcher::drawFoundMatches(const Mat& img1, const Mat& img2, bool drawOnly
         drawMatches(temp1, this->keypoints[0], temp2, this->keypointsFrame, this->goodMatches, imgMatches);
         cout << "Size of all keypoints: " <<  this->keypoints[0].size() << endl;
         cout << "Size of all matches: " <<  this->goodMatches.size() << endl;
-
     }
     else
     {

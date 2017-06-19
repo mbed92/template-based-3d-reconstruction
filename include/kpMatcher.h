@@ -32,6 +32,7 @@ using namespace cv;
 class KpMatcher
 {
 private:
+    bool isSimulatedLocalDeform;
     vector<Mat> descriptors;
     vector<vector<KeyPoint> > keypoints;
     Mat descriptorsFrame;
@@ -44,6 +45,8 @@ private:
 public:
     KpMatcher(Ptr<Feature2D> detect, Ptr<Feature2D> desc)
     {
+        this->isSimulatedLocalDeform = true;
+
         detector = detect;
         descriptor = desc;
 

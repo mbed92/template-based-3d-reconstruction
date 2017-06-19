@@ -50,6 +50,8 @@ int main(int argc, char** argv)
     vector<KeyPoint> kp2 = kpm->getFrameMatchedKeypoints();
     rec->prepareMatches(matches, kp1, kp2);
     rec->deform();
+    rec->SetUseTemporal(true);
+    rec->SetUsePrevFrameToInit(true);
 
     if(argv[7] == string("1"))
     {
@@ -58,13 +60,13 @@ int main(int argc, char** argv)
         ss << "PC_" << getFrameNumber() << "_" << argv[5] << "_" << argv[6] << "_" << argv[3] << "_" << argv[4];
 
         /*save images*/
-        kpm->drawFoundMatches(img, frame, false, ss.str() + "_all");
-        kpm->drawFoundMatches(img, frame, true, ss.str() + "_imp");
-        kpm->drawKeypointsDisplacement(img, frame, ss.str() + "_disp");
+//        kpm->drawFoundMatches(img, frame, false, ss.str() + "_all");
+//        kpm->drawFoundMatches(img, frame, true, ss.str() + "_imp");
+//        kpm->drawKeypointsDisplacement(img, frame, ss.str() + "_disp");
 
-        /*save 3d info*/
+//        /*save 3d info*/
         rec->savePointCloud(ss.str());  // save point cloud
-        rec->drawMesh(frame, rec->resMesh, ss.str() );  //save mesh
+//        rec->drawMesh(frame, rec->resMesh, ss.str() );  //save mesh
 
         /*save matches*/
         ofstream outfile;
@@ -76,7 +78,7 @@ int main(int argc, char** argv)
 //    rec->drawMesh(img, *rec->refMesh);
 //    rec->drawMesh(frame, rec->resMesh);
 
-    rec.release();
+//    rec.release();
     kpm.release();
 
     return EXIT_SUCCESS;

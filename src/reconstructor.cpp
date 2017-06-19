@@ -6,24 +6,24 @@ const int Reconstructor::DETECT_THRES = 100;
 Reconstructor::Reconstructor()
 {
     this->refMesh = NULL;
-    this->compMesh = NULL;
     modelCamIntrFile	= "cam.intr";
     modelCamExtFile		= "cam.ext";
     trigFile			= "mesh";
     refImgFile			= "model.png";
     imCornerFile		= "im_corners.txt";
     ctrlPointsFile      = "ControlPointIDs.txt";
-    ctrlPointsCompFile      = "ControlPointIDsComp.txt";
 }
 
 Reconstructor::~Reconstructor()
 {
     delete this->refMesh;
-    delete this->compMesh;
 }
 
 void Reconstructor::init(Mat &image)
 {
+    this-> imgWidth = image.cols;
+    this-> imgHeight = image.rows;
+
     modelWorldCamera.LoadFromFile(this->modelCamIntrFile, this->modelCamExtFile);
     modelCamCamera = Camera( modelWorldCamera.GetA() );
 
@@ -45,6 +45,84 @@ void Reconstructor::init(Mat &image)
     wrInit	  		= 525 * pow(ROBUST_SCALE, nUncstrIters-1);
 
     image.copyTo(img);
+    this->isFocalAdjustment = true;
+
+}
+
+double Reconstructor::getDisplacementFactor(const double& leftDisplacement, const double& rightDisplacement)
+{
+    double temp = std::abs((leftDisplacement + rightDisplacement) / 2.0);
+    if(temp > 1.0)
+    {
+        return 0.001;
+    }
+    else if(temp <= 1.0 && temp > 0.8)
+    {
+        return 0.0009;
+    }
+    else if(temp <= 0.8 && temp > 0.6)
+    {
+        return 0.0008;
+    }
+    else if(temp <= 0.6 && temp > 0.4)
+    {
+        return 0.0007;
+    }
+    else
+    {
+        return 0.0006;
+    }
+}
+
+void Reconstructor::setupDisplacementVectors(const int &u, const int &u_p, const int &v, const int &v_p)
+{
+    int leftCnt = 0, rightCnt = 0, upCnt = 0, downCnt = 0;
+    int centerBoundaryVertical = this->imgWidth / 2;
+    int centerBoundaryHorizontal = this->imgHeight / 2;
+    int displacementVertical = u - u_p;
+    int displacementHorizontal = v - v_p;
+
+    if(displacementVertical != 0)
+    {
+        if( u < centerBoundaryVertical )
+        {
+            //left side     (+)
+            this->reprojLeft(leftCnt) = displacementHorizontal;
+            leftCnt++;
+        }
+        else
+        {
+            //right side    (-)
+            this->reprojRight(rightCnt) = -displacementHorizontal;
+            rightCnt++;
+        }
+    }
+
+    if(displacementHorizontal != 0)
+    {
+        if( v < centerBoundaryHorizontal )
+        {
+            //left side     (+)
+            this->reprojUp(upCnt) = -displacementVertical;
+            upCnt++;
+        }
+        else
+        {
+            //right side    (-)
+            this->reprojDown(downCnt) = displacementVertical;
+            downCnt++;
+        }
+    }
+
+    arma::uvec toCropLeft  = find( this->reprojLeft  != 0 );
+    arma::uvec toCropRight = find( this->reprojRight != 0 );
+    arma::uvec toCropUp    = find( this->reprojUp    != 0 );
+    arma::uvec toCropDown  = find( this->reprojDown  != 0 );
+
+    this->reprojLeft.elem(toCropLeft);
+    this->reprojRight.elem(toCropRight);
+    this->reprojUp.elem(toCropUp);
+    this->reprojDown.elem(toCropDown);
 }
 
 void Reconstructor::deform()
@@ -84,6 +162,12 @@ void Reconstructor::unconstrainedReconstruction()
     // First, we need to build the correspondent matrix with all given matches to avoid re-computation
     this->buildCorrespondenceMatrix(this->matchesAll);
 
+    // init diff vectors
+    this->diffLeft  = arma::zeros(nUncstrIters);
+    this->diffRight = arma::zeros(nUncstrIters);
+    this->diffUp    = arma::zeros(nUncstrIters);
+    this->diffDown  = arma::zeros(nUncstrIters);
+
     // Then compute MPinit. Function reconstructPlanarUnconstr() will use part of MPinit w.r.t currently used matches
     this->MPinit = this->Minit * this->refMesh->GetBigParamMat();
 
@@ -110,6 +194,66 @@ void Reconstructor::unconstrainedReconstruction()
         else
             reprojErrors = this->computeReprojectionErrors(this->resMesh, matchesAll, inlierMatchIdxs); //every other iteration but last two
 
+
+        if(this->isFocalAdjustment)
+        {
+            //update focal
+            double leftError  = arma::mean(this->reprojLeft);
+            double rightError = arma::mean(this->reprojRight);
+            double upError    = arma::mean(this->reprojUp);
+            double downError  = arma::mean(this->reprojDown);
+
+            // push back to diff
+            this->diffLeft(i)  = leftError;
+            this->diffRight(i) = rightError;
+            this->diffUp(i)    = upError;
+            this->diffDown(i)  = downError;
+
+            // track diff changes
+            if(i > 1)
+            {
+                // compute diffs in directions
+                bool leftDisplacement  = (this->diffLeft(i)  < 0 && this->diffLeft(i-1)  < 0) ? true : false;
+                bool rightDisplacement = (this->diffRight(i) < 0 && this->diffRight(i-1) < 0) ? true : false;
+                bool upDisplacement    = (this->diffUp(i)    < 0 && this->diffUp(i-1)    < 0) ? true : false;
+                bool downDisplacement  = (this->diffDown(i)  < 0 && this->diffDown(i-1)  < 0) ? true : false;
+
+                // get focal length
+                double focalTic = this->modelCamCamera.getFocal();
+                std::cout << focalTic << std::endl;
+
+                // compute +/- factor
+                double factorHori = getDisplacementFactor(this->diffLeft(i)-this->diffLeft(i-1), this->diffRight(i)-this->diffRight(i-1));
+                double factorVert = getDisplacementFactor(this->diffUp(i)-this->diffUp(i-1), this->diffDown(i)-this->diffDown(i-1));
+                double factor = (factorHori + factorVert) / 2.0;
+
+                // update focal
+                // if the object is smaller - assume the focal length is a little bit too long
+                if( (leftDisplacement && rightDisplacement) || (downDisplacement && upDisplacement) )
+                {
+                    //focal down
+                    focalTic = focalTic - factor * focalTic;
+                }
+                // if the object is bigger - assume the focal length is a little bit too short
+                if( (!leftDisplacement && !rightDisplacement) || (!downDisplacement && !upDisplacement) )
+                {
+                    // focal up
+                    focalTic = focalTic + factor * focalTic;
+                }
+
+                // check if focal length adjustment happened
+                double focalToc = this->modelCamCamera.getFocal();
+
+                if(focalToc != focalTic)
+                {
+                    // update matrices
+                    std::cout << "Updated!" << std::endl;
+                    this->modelCamCamera.setFocal(focalTic);
+                    this->buildCorrespondenceMatrix(this->matchesAll);
+                    this->MPinit = this->Minit * this->refMesh->GetBigParamMat();
+                }
+            }
+        }
 
         arma::uvec idxs = find( reprojErrors < radius );
         if ( idxs.n_elem == 0 )
@@ -172,6 +316,11 @@ arma::vec Reconstructor::computeReprojectionErrors( const TriangleMesh& trigMesh
     const arma::mat& vertexCoords = trigMesh.GetVertexCoords();
     int nMatches = currentMatchIdxs.n_rows;
 
+    this->reprojLeft  = arma::zeros<arma::vec>( nMatches );
+    this->reprojRight = arma::zeros<arma::vec>( nMatches );
+    this->reprojUp    = arma::zeros<arma::vec>( nMatches );
+    this->reprojDown  = arma::zeros<arma::vec>( nMatches );
+
     arma::vec errors(nMatches);		// Errors of all matches
 
     for (int i = 0; i < nMatches; i++)
@@ -203,6 +352,15 @@ arma::vec Reconstructor::computeReprojectionErrors( const TriangleMesh& trigMesh
         matchingPoint(1) = matchesInit(idx, 7);
 
         errors(i) = arma::norm(point2D - matchingPoint, 2);
+
+        //save displacement errors
+        int u   = matchingPoint(0);
+        int u_p = point2D(0);
+
+        int v   = matchingPoint(1);
+        int v_p = point2D(1);
+
+        this->setupDisplacementVectors(u, u_p, v, v_p);
     }
 
     return errors;
@@ -435,17 +593,6 @@ void Reconstructor::drawMesh(Mat &inputImg, LaplacianMesh &mesh, string fileName
     }
 }
 
-void Reconstructor::evaluate3dReconstruction(string compFile)
-{
-    ctrPointCompIds.load("ControlPointIDsComp.txt");
-    this->compMesh = new LaplacianMesh();
-    compMesh->Load(compFile);
-    compMesh->TransformToCameraCoord(modelWorldCamera);		// Convert the mesh into camera coordinate using world camera
-    compMesh->SetCtrlPointIDs(ctrPointCompIds);
-    compMesh->ComputeAPMatrices();
-    compMesh->computeFacetNormalsNCentroids();
-}
-
 void Reconstructor::savePointCloud(string fileName)
 {
     fileName = fileName + ".txt";
@@ -467,49 +614,5 @@ void Reconstructor::savePointCloud(string fileName)
     else
     {
         cerr << "Cannot save mesh!" << endl << endl;
-    }
-}
-
-void Reconstructor::openGLproj()
-{
-    // Open a GLFW window to display our output
-    glfwInit();
-
-    GLFWwindow * win = glfwCreateWindow(1280, 960, "showme", NULL, NULL);
-    glfwMakeContextCurrent(win);
-    arma::mat temp = this->compMesh->GetVertexCoords();
-
-    int rot = 0;
-    while(!glfwWindowShouldClose(win))
-    {
-        // Set up a perspective transform in a space that we can rotate by clicking and dragging the mouse
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        glMatrixMode(GL_PROJECTION);
-        glLoadIdentity();
-        gluPerspective(60, (float)1280/960, 0.01f, 20.0f);
-        glMatrixMode(GL_MODELVIEW);
-        glLoadIdentity();
-        gluLookAt(0,0,0, 0,0,1, 0,-1,0);
-        glTranslatef(0,0,+0.5f);
-        glRotated(1, 1, 0, 0);
-        glRotated(1, 0, 1, 0);
-        glTranslatef(0,0,-0.5f);
-
-        // We will render our depth data as a set of points in 3D space
-        glPointSize(2);
-        glEnable(GL_DEPTH_TEST);
-        glBegin(GL_POINTS);
-
-        for(size_t i = 0; i < temp.n_rows; i++)
-        {
-            //cout << temp.row(i)[0] << " " << temp.row(i)[1] << temp.row(i)[2] << endl;
-            // Use the color from the nearest color pixel, or pure white if this point falls outside the color image
-            glColor3ub(255, 255, 255);
-            glVertex3f(temp.row(i)[0], temp.row(i)[1], temp.row(i)[2]);
-        }
-
-        glEnd();
-        glfwSwapBuffers(win);
-        rot++;
     }
 }
