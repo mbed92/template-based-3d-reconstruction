@@ -1,3 +1,0 @@
-/home/mbed/Desktop/Projects/ASIFTplusplus/build/CMakeFiles/edit_cache.dir
-/home/mbed/Desktop/Projects/ASIFTplusplus/build/CMakeFiles/rebuild_cache.dir
-/home/mbed/Desktop/Projects/ASIFTplusplus/build/CMakeFiles/affineDSC.dir
