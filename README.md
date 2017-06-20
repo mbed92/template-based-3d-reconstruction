@@ -37,5 +37,5 @@ http://cvlab.epfl.ch/files/content/sites/cvlab2/files/publications/publications/
 
 # Milestones:
 - [09.03.17] Adapted EPFL code for my own purposes. 
-- [23.05.17] Simulated local deformation - stable (more or less) version.
+- [23.05.17] Simulated local deformation - stable version.
 - [19.06.17] Focal adjustment added + few minor improvements.
