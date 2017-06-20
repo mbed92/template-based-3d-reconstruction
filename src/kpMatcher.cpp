@@ -26,7 +26,7 @@ void KpMatcher::init(const Mat &img)
     if(this->isSimulatedLocalDeform)
     {
         cout << "Initialization started..." << endl;
-        getTransformationMatrixes("images/chessboard.txt");
+        getTransformationMatrixes("../images/chessboard.txt");
 
         for(size_t i = 0; i < this->transformationMatrixes.size(); i++)
         {
