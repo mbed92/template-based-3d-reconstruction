@@ -3,7 +3,7 @@
 const double Reconstructor::ROBUST_SCALE = 2.5;
 const int Reconstructor::DETECT_THRES = 100;
 
-Reconstructor::Reconstructor()
+Reconstructor::Reconstructor(SimulatedAnnealing *simAnn): simAnn(simAnn)
 {
     this->refMesh = NULL;
     modelCamIntrFile	= "cam.intr";
@@ -21,14 +21,19 @@ Reconstructor::~Reconstructor()
 
 void Reconstructor::init(Mat &image)
 {
+    //setup img variables
     this-> imgWidth = image.cols;
     this-> imgHeight = image.rows;
 
     modelWorldCamera.LoadFromFile(this->modelCamIntrFile, this->modelCamExtFile);
-    modelCamCamera = Camera( modelWorldCamera.GetA() );
 
+    //generic focal length
+    arma::mat A = modelWorldCamera.GetA();
+    modelCamCamera = Camera( A );
+    modelFakeCamera = Camera( A );
+
+    //setup mesh
     ctrPointIds.load("ControlPointIDs.txt");
-
     this->refMesh = new LaplacianMesh();
     refMesh->Load(trigFile);
     refMesh->TransformToCameraCoord(modelWorldCamera);		// Convert the mesh into camera coordinate using world camera
@@ -37,98 +42,34 @@ void Reconstructor::init(Mat &image)
     refMesh->computeFacetNormalsNCentroids();
     resMesh = *refMesh;
 
+    //setup internal matrices
     const arma::mat& bigAP = this->refMesh->GetBigAP();
     this->APtAP = bigAP.t() * bigAP;
 
+    //setup internal variables
     nUncstrIters	= 5;
-    radiusInit 		= 5   * pow(ROBUST_SCALE, nUncstrIters-1);
-    wrInit	  		= 525 * pow(ROBUST_SCALE, nUncstrIters-1);
-
+    radiusInit 		= 5          * pow(ROBUST_SCALE, nUncstrIters-1);
+    wrInit	  		= 525        * pow(ROBUST_SCALE, nUncstrIters-1);
     image.copyTo(img);
+
+    //specify control variables
     this->isFocalAdjustment = true;
-
-}
-
-double Reconstructor::getDisplacementFactor(const double& leftDisplacement, const double& rightDisplacement)
-{
-    double temp = std::abs((leftDisplacement + rightDisplacement) / 2.0);
-    if(temp > 1.0)
-    {
-        return 0.001;
-    }
-    else if(temp <= 1.0 && temp > 0.8)
-    {
-        return 0.0009;
-    }
-    else if(temp <= 0.8 && temp > 0.6)
-    {
-        return 0.0008;
-    }
-    else if(temp <= 0.6 && temp > 0.4)
-    {
-        return 0.0007;
-    }
-    else
-    {
-        return 0.0006;
-    }
-}
-
-void Reconstructor::setupDisplacementVectors(const int &u, const int &u_p, const int &v, const int &v_p)
-{
-    int leftCnt = 0, rightCnt = 0, upCnt = 0, downCnt = 0;
-    int centerBoundaryVertical = this->imgWidth / 2;
-    int centerBoundaryHorizontal = this->imgHeight / 2;
-    int displacementVertical = u - u_p;
-    int displacementHorizontal = v - v_p;
-
-    if(displacementVertical != 0)
-    {
-        if( u < centerBoundaryVertical )
-        {
-            //left side     (+)
-            this->reprojLeft(leftCnt) = displacementHorizontal;
-            leftCnt++;
-        }
-        else
-        {
-            //right side    (-)
-            this->reprojRight(rightCnt) = -displacementHorizontal;
-            rightCnt++;
-        }
-    }
-
-    if(displacementHorizontal != 0)
-    {
-        if( v < centerBoundaryHorizontal )
-        {
-            //left side     (+)
-            this->reprojUp(upCnt) = -displacementVertical;
-            upCnt++;
-        }
-        else
-        {
-            //right side    (-)
-            this->reprojDown(downCnt) = displacementVertical;
-            downCnt++;
-        }
-    }
-
-    arma::uvec toCropLeft  = find( this->reprojLeft  != 0 );
-    arma::uvec toCropRight = find( this->reprojRight != 0 );
-    arma::uvec toCropUp    = find( this->reprojUp    != 0 );
-    arma::uvec toCropDown  = find( this->reprojDown  != 0 );
-
-    this->reprojLeft.elem(toCropLeft);
-    this->reprojRight.elem(toCropRight);
-    this->reprojUp.elem(toCropUp);
-    this->reprojDown.elem(toCropDown);
+    this->isFocalRandom = false;
 }
 
 void Reconstructor::deform()
 {
     try
     {
+        // for focal length optimization
+        this->simAnn->init(400, 600);
+        if(this->isFocalAdjustment && this->isFocalRandom)
+        {
+            //focal length is random variable at the begining - specify range
+            this->modelCamCamera.setFocal(this->simAnn->optimalSolution);
+            this->modelFakeCamera.setFocal(this->simAnn->optimalSolution);
+        }
+
         //step 1
         unconstrainedReconstruction();
 
@@ -138,7 +79,7 @@ void Reconstructor::deform()
         if (this->inlierMatchIdxs.n_rows > DETECT_THRES)
         {
             arma::vec cInit = reshape( resMesh.GetCtrlVertices(), resMesh.GetNCtrlPoints()*3, 1 );	// x1 x2..y1 y2..z1 z2..
-            ReconstructIneqConstr(cInit, resMesh);
+            ReconstructIneqConstr(cInit);
         }
     }
     catch(exception &e)
@@ -162,12 +103,6 @@ void Reconstructor::unconstrainedReconstruction()
     // First, we need to build the correspondent matrix with all given matches to avoid re-computation
     this->buildCorrespondenceMatrix(this->matchesAll);
 
-    // init diff vectors
-    this->diffLeft  = arma::zeros(nUncstrIters);
-    this->diffRight = arma::zeros(nUncstrIters);
-    this->diffUp    = arma::zeros(nUncstrIters);
-    this->diffDown  = arma::zeros(nUncstrIters);
-
     // Then compute MPinit. Function reconstructPlanarUnconstr() will use part of MPinit w.r.t currently used matches
     this->MPinit = this->Minit * this->refMesh->GetBigParamMat();
 
@@ -190,79 +125,74 @@ void Reconstructor::unconstrainedReconstruction()
         // Otherwise, remove outliers
         int iterTO = nUncstrIters - 2;
         if (i >= iterTO)
-            reprojErrors = this->computeReprojectionErrors(this->resMesh, matchesAll, matchesInitIdxs); //last - 1 iteration
-        else
-            reprojErrors = this->computeReprojectionErrors(this->resMesh, matchesAll, inlierMatchIdxs); //every other iteration but last two
-
-
-        if(this->isFocalAdjustment)
         {
-            //update focal
-            double leftError  = arma::mean(this->reprojLeft);
-            double rightError = arma::mean(this->reprojRight);
-            double upError    = arma::mean(this->reprojUp);
-            double downError  = arma::mean(this->reprojDown);
-
-            // push back to diff
-            this->diffLeft(i)  = leftError;
-            this->diffRight(i) = rightError;
-            this->diffUp(i)    = upError;
-            this->diffDown(i)  = downError;
-
-            // track diff changes
-            if(i > 1)
-            {
-                // compute diffs in directions
-                bool leftDisplacement  = (this->diffLeft(i)  < 0 && this->diffLeft(i-1)  < 0) ? true : false;
-                bool rightDisplacement = (this->diffRight(i) < 0 && this->diffRight(i-1) < 0) ? true : false;
-                bool upDisplacement    = (this->diffUp(i)    < 0 && this->diffUp(i-1)    < 0) ? true : false;
-                bool downDisplacement  = (this->diffDown(i)  < 0 && this->diffDown(i-1)  < 0) ? true : false;
-
-                // get focal length
-                double focalTic = this->modelCamCamera.getFocal();
-                std::cout << focalTic << std::endl;
-
-                // compute +/- factor
-                double factorHori = getDisplacementFactor(this->diffLeft(i)-this->diffLeft(i-1), this->diffRight(i)-this->diffRight(i-1));
-                double factorVert = getDisplacementFactor(this->diffUp(i)-this->diffUp(i-1), this->diffDown(i)-this->diffDown(i-1));
-                double factor = (factorHori + factorVert) / 2.0;
-
-                // update focal
-                // if the object is smaller - assume the focal length is a little bit too long
-                if( (leftDisplacement && rightDisplacement) || (downDisplacement && upDisplacement) )
-                {
-                    //focal down
-                    focalTic = focalTic - factor * focalTic;
-                }
-                // if the object is bigger - assume the focal length is a little bit too short
-                if( (!leftDisplacement && !rightDisplacement) || (!downDisplacement && !upDisplacement) )
-                {
-                    // focal up
-                    focalTic = focalTic + factor * focalTic;
-                }
-
-                // check if focal length adjustment happened
-                double focalToc = this->modelCamCamera.getFocal();
-
-                if(focalToc != focalTic)
-                {
-                    // update matrices
-                    std::cout << "Updated!" << std::endl;
-                    this->modelCamCamera.setFocal(focalTic);
-                    this->buildCorrespondenceMatrix(this->matchesAll);
-                    this->MPinit = this->Minit * this->refMesh->GetBigParamMat();
-                }
-            }
+            reprojErrors = this->computeReprojectionErrors(this->resMesh, matchesAll, matchesInitIdxs, false); //last - 1 iteration
+        }
+        else
+        {
+            reprojErrors = this->computeReprojectionErrors(this->resMesh, matchesAll, inlierMatchIdxs, false); //every other iteration but last two
         }
 
+        // run SIMULATED ANNEALING alghoritm (and if mean reprojError is not NaN)
+        if(this->isFocalAdjustment && arma::mean(reprojErrors) == arma::mean(reprojErrors))
+        {
+            arma::vec tempErrors;
+            double focalLength;
+            this->simAnn->currentOutput = arma::mean(reprojErrors);
+
+            while(this->simAnn->T > this->simAnn->tF)
+            {
+                int k = 1;
+                while(k < 50)
+                {
+                    // try randomly changed focal length
+                    focalLength = this->simAnn->updateParam(-0.5, 0.5);
+
+                    // set fake camera intrinsic focal length and compute reprojection error
+                    this->modelFakeCamera.setFocal(focalLength);
+                    if (i >= iterTO)
+                    {
+                        tempErrors = this->computeReprojectionErrors(this->resMesh, matchesAll, matchesInitIdxs, true); //last - 1 iteration
+                    }
+                    else
+                    {
+                        tempErrors = this->computeReprojectionErrors(this->resMesh, matchesAll, inlierMatchIdxs, true); //every other iteration but last two
+                    }
+
+                    // if there is a better solution - update legimate model focal length
+                    double z = arma::mean(tempErrors);
+                    if(z < this->simAnn->currentOutput || (this->simAnn->accept(z, this->simAnn->currentOutput, this->simAnn->T)) > this->simAnn->getRandom(0, 1))
+                    {
+                        this->simAnn->currentOutput = z;
+                        this->simAnn->optimalSolution = focalLength;
+                        this->updateInternalMatrices(focalLength);
+                    }
+                    k++;
+                }
+                this->simAnn->counter++;
+                std::cout << this->simAnn->counter << ": " << this->simAnn->T << " " << this->simAnn->tF << " " << modelCamCamera.getFocal() << std::endl;
+                this->simAnn->updateTemperature();
+            }
+
+            // when SA alghoritm ends - reset internal variables
+            double f = this->modelCamCamera.getFocal();
+            this->simAnn->reset(f);
+        }
+        std::cout << "SA finished! Iteration: " << i << std::endl;
+
+        // get inliers
         arma::uvec idxs = find( reprojErrors < radius );
         if ( idxs.n_elem == 0 )
             break;
 
         if (i >= iterTO)
+        {
             inlierMatchIdxs = matchesInitIdxs.elem( idxs ); // (last - 1) iteration
+        }
         else
+        {
             inlierMatchIdxs = inlierMatchIdxs.elem( idxs ); // every other iteration but last two
+        }
 
         // Update parameters
         wr		= wr 	 / ROBUST_SCALE;
@@ -270,7 +200,17 @@ void Reconstructor::unconstrainedReconstruction()
     }
 }
 
-void Reconstructor::ReconstructIneqConstr( const arma::vec& cInit, LaplacianMesh& resMesh )
+void Reconstructor::updateInternalMatrices(const double &focal)
+{
+    if(focal > 0)
+    {
+        this->modelCamCamera.setFocal(focal);
+        this->buildCorrespondenceMatrix(this->matchesAll);
+        this->MPinit = this->Minit * this->refMesh->GetBigParamMat();
+    }
+}
+
+void Reconstructor::ReconstructIneqConstr( const arma::vec& cInit )
 {
     const arma::mat& paramMat = this->refMesh->GetParamMatrix();
     const arma::mat& bigP		= this->refMesh->GetBigParamMat();
@@ -311,15 +251,15 @@ void Reconstructor::ReconstructIneqConstr( const arma::vec& cInit, LaplacianMesh
 }
 
 
-arma::vec Reconstructor::computeReprojectionErrors( const TriangleMesh& trigMesh, const arma::mat& matchesInit, const arma::uvec& currentMatchIdxs )
+arma::vec Reconstructor::computeReprojectionErrors( const TriangleMesh& trigMesh, const arma::mat& matchesInit, const arma::uvec& currentMatchIdxs, bool useFakeCamera )
 {
     const arma::mat& vertexCoords = trigMesh.GetVertexCoords();
     int nMatches = currentMatchIdxs.n_rows;
 
-    this->reprojLeft  = arma::zeros<arma::vec>( nMatches );
-    this->reprojRight = arma::zeros<arma::vec>( nMatches );
-    this->reprojUp    = arma::zeros<arma::vec>( nMatches );
-    this->reprojDown  = arma::zeros<arma::vec>( nMatches );
+//    this->reprojLeft  = arma::zeros<arma::vec>( nMatches );
+//    this->reprojRight = arma::zeros<arma::vec>( nMatches );
+//    this->reprojUp    = arma::zeros<arma::vec>( nMatches );
+//    this->reprojDown  = arma::zeros<arma::vec>( nMatches );
 
     arma::vec errors(nMatches);		// Errors of all matches
 
@@ -343,24 +283,38 @@ arma::vec Reconstructor::computeReprojectionErrors( const TriangleMesh& trigMesh
         // 3D feature point
         arma::rowvec point3D = bary1*vertex1Coords + bary2*vertex2Coords + bary3*vertex3Coords;
 
-        // TODO: Implement this function instead of call projecting function for a single point. This can save expense of function calls
-        // Projection
-        arma::vec point2D = modelCamCamera.ProjectAPoint(point3D.t());
-
         arma::vec matchingPoint(2);
         matchingPoint(0) = matchesInit(idx, 6);
         matchingPoint(1) = matchesInit(idx, 7);
 
+        // TODO: Implement this function instead of call projecting function for a single point. This can save expense of function calls
+        // Projection
+        arma::vec point2D;
+        if(useFakeCamera)
+        {
+            point2D = this->modelFakeCamera.ProjectAPoint(point3D.t());
+//            std::cout << this->modelFakeCamera.getFocal() << " " << this->modelCamCamera.getFocal() << std::endl;
+//            std::cout
+//                    << arma::norm(this->modelFakeCamera.ProjectAPoint(point3D.t()) - matchingPoint, 2)
+//                    << " "
+//                    << arma::norm(this->modelCamCamera.ProjectAPoint(point3D.t()) - matchingPoint, 2)
+//                    << std::endl;
+        }
+        else
+        {
+            point2D = this->modelCamCamera.ProjectAPoint(point3D.t());
+        }
+
         errors(i) = arma::norm(point2D - matchingPoint, 2);
 
         //save displacement errors
-        int u   = matchingPoint(0);
-        int u_p = point2D(0);
+//        int u   = matchingPoint(0);
+//        int u_p = point2D(0);
 
-        int v   = matchingPoint(1);
-        int v_p = point2D(1);
+//        int v   = matchingPoint(1);
+//        int v_p = point2D(1);
 
-        this->setupDisplacementVectors(u, u_p, v, v_p);
+//        this->setupDisplacementVectors(u, u_p, v, v_p);
     }
 
     return errors;
@@ -588,8 +542,7 @@ void Reconstructor::drawMesh(Mat &inputImg, LaplacianMesh &mesh, string fileName
         //namedWindow("test", WINDOW_AUTOSIZE);
         imwrite(fileName, img);
         //imshow("test", img);
-
-        waitKey(0);
+        //waitKey(0);
     }
 }
 
@@ -614,5 +567,130 @@ void Reconstructor::savePointCloud(string fileName)
     else
     {
         cerr << "Cannot save mesh!" << endl << endl;
+    }
+}
+
+double Reconstructor::getDisplacementFactor(const double& leftDisplacement, const double& rightDisplacement)
+{
+    double temp = std::abs((leftDisplacement + rightDisplacement) / 2.0);
+    if(temp > 1.0)
+    {
+        return 0.001;
+    }
+    else if(temp <= 1.0 && temp > 0.8)
+    {
+        return 0.0009;
+    }
+    else if(temp <= 0.8 && temp > 0.6)
+    {
+        return 0.0008;
+    }
+    else if(temp <= 0.6 && temp > 0.4)
+    {
+        return 0.0007;
+    }
+    else
+    {
+        return 0.0006;
+    }
+}
+
+void Reconstructor::setupDisplacementVectors(const int &u, const int &u_p, const int &v, const int &v_p)
+{
+    int leftCnt = 0, rightCnt = 0, upCnt = 0, downCnt = 0;
+    int centerBoundaryVertical = this->imgWidth / 2;
+    int centerBoundaryHorizontal = this->imgHeight / 2;
+    int displacementVertical = u - u_p;
+    int displacementHorizontal = v - v_p;
+
+    if(displacementVertical != 0)
+    {
+        if( u < centerBoundaryVertical )
+        {
+            //left side     (+)
+            this->reprojLeft(leftCnt) = displacementHorizontal;
+            leftCnt++;
+        }
+        else
+        {
+            //right side    (-)
+            this->reprojRight(rightCnt) = -displacementHorizontal;
+            rightCnt++;
+        }
+    }
+
+    if(displacementHorizontal != 0)
+    {
+        if( v < centerBoundaryHorizontal )
+        {
+            //left side     (+)
+            this->reprojUp(upCnt) = -displacementVertical;
+            upCnt++;
+        }
+        else
+        {
+            //right side    (-)
+            this->reprojDown(downCnt) = displacementVertical;
+            downCnt++;
+        }
+    }
+
+    arma::uvec toCropLeft  = find( this->reprojLeft  != 0 );
+    arma::uvec toCropRight = find( this->reprojRight != 0 );
+    arma::uvec toCropUp    = find( this->reprojUp    != 0 );
+    arma::uvec toCropDown  = find( this->reprojDown  != 0 );
+
+    this->reprojLeft.elem(toCropLeft);
+    this->reprojRight.elem(toCropRight);
+    this->reprojUp.elem(toCropUp);
+    this->reprojDown.elem(toCropDown);
+}
+
+void Reconstructor::updateFocalWithRespectToReprojError(const int& i, const double& wc, arma::vec &reprojErrorMeasure)
+{
+    //update focal
+    double leftError  = arma::mean(this->reprojLeft);
+    double rightError = arma::mean(this->reprojRight);
+    double upError    = arma::mean(this->reprojUp);
+    double downError  = arma::mean(this->reprojDown);
+
+    // push back to diff
+    this->diffLeft(i)  = leftError;
+    this->diffRight(i) = rightError;
+    this->diffUp(i)    = upError;
+    this->diffDown(i)  = downError;
+
+    // track diff changes
+    if(i > 1)
+    {
+        // compute diffs in directions
+        bool leftDisplacement  = (this->diffLeft(i)  < 0 && this->diffLeft(i-1)  < 0) ? true : false;
+        bool rightDisplacement = (this->diffRight(i) < 0 && this->diffRight(i-1) < 0) ? true : false;
+        bool upDisplacement    = (this->diffUp(i)    < 0 && this->diffUp(i-1)    < 0) ? true : false;
+        bool downDisplacement  = (this->diffDown(i)  < 0 && this->diffDown(i-1)  < 0) ? true : false;
+
+        // get focal length
+        double focalTic = this->modelCamCamera.getFocal();
+        std::cout << focalTic << std::endl;
+
+        // update focal
+        // if the object is smaller again - assume the focal length is a little bit too long
+        if( (leftDisplacement && rightDisplacement) && (downDisplacement && upDisplacement) )
+        {
+            //focal down
+            focalTic = focalTic - wc * focalTic;
+        }
+        else
+        {
+            // if the object is bigger again - assume the focal length is a little bit too short
+            if( (!leftDisplacement && !rightDisplacement) && (!downDisplacement && !upDisplacement) )
+            {
+                // focal up
+                focalTic = focalTic + wc * focalTic;
+            }
+        }
+
+        // check if focal length adjustment happened
+        this->updateInternalMatrices(focalTic);
     }
 }

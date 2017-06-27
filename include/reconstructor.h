@@ -36,6 +36,8 @@
 #include <GLFW/glfw3.h>
 #include <GL/glu.h>
 
+#include "simulatedAnnealing.h"
+
 #include "../epfl/Mesh/LaplacianMesh.h"
 #include "../epfl/Linear/ObjectiveFunction.h"
 #include "../epfl/Linear/IneqConstrFunction.h"
@@ -60,7 +62,8 @@ private:
     arma::urowvec ctrPointIds;                      // Set of control points
     arma::urowvec ctrPointCompIds;      			// Set of control points
 
-    Camera modelCamCamera, modelWorldCamera;        // Camera coordinates
+    Camera modelCamCamera, modelWorldCamera, modelFakeCamera;        // Camera coordinates
+                                                                     // Fake camera only for focal length optimization using simulated annealing alghoritm
     Mat refImg, inputImg, img;                      // Reference image and input image
 
     arma::mat matchesAll, matchesInlier;
@@ -79,6 +82,7 @@ private:
     arma::mat MPwAPtMPwAP;      // Precomputed (MPwAP)' * MPwAP used in eigen value decomposition
 
     double			wrInit;					// Initial weight of deformation penalty term ||AX||
+    double          wcInit;                 // Initial weight of deformation penalty term depending on focal length
     double			radiusInit;				// Initial radius of robust estimator
     int				nUncstrIters;			// Number of iterations for unconstrained reconstruction
 
@@ -95,21 +99,23 @@ private:
     vector<KeyPoint> kpModel, kpInput;
 
     IneqConstrOptimize ineqConstrOptimize;	// Due to accumulation of ill-conditioned errors.
+    SimulatedAnnealing* simAnn;
 
     int imgWidth, imgHeight;
     arma::vec reprojLeft, reprojRight, reprojUp, reprojDown;
     arma::vec diffLeft, diffRight, diffUp, diffDown;
-    bool isFocalAdjustment;
+    bool isFocalAdjustment, isFocalRandom;
 
 private:
     void unconstrainedReconstruction();
+    void updateInternalMatrices(const double& focal);
     bool find3DPointOnMesh(const Point2d& refPoint, arma::rowvec& intersectionPoint);
     arma::vec findIntersectionRayTriangle(const arma::vec& source, const arma::vec& destination, const arma::mat& vABC);
     void buildCorrespondenceMatrix( const arma::mat& matches );
     void reconstructPlanarUnconstr(const arma::uvec& matchIdxs, double wr , LaplacianMesh &resMesh);
     void computeCurrentMatrices( const arma::uvec& matchIdxs, double wr );
-    arma::vec computeReprojectionErrors( const TriangleMesh& trigMesh, const arma::mat& matchesInit, const arma::uvec& currentMatchIdxs );
-    void ReconstructIneqConstr( const arma::vec& cInit, LaplacianMesh& resMesh );
+    arma::vec computeReprojectionErrors(const TriangleMesh& trigMesh, const arma::mat& matchesInit, const arma::uvec& currentMatchIdxs , bool useFakeCamera);
+    void ReconstructIneqConstr(const arma::vec& cInit);
     const arma::mat& GetMPwAP() const
     {
         return this->MPwAP;
@@ -119,7 +125,7 @@ public:
     LaplacianMesh *refMesh, resMesh;
 
 public:
-    Reconstructor();
+    Reconstructor(SimulatedAnnealing* simAnn);
     ~Reconstructor();
     void init(Mat &image);
     void prepareMatches(vector<DMatch> &matches, vector<KeyPoint> &kp1, vector<KeyPoint> &kp2);
@@ -129,6 +135,7 @@ public:
     void savePointCloud(string fileName);
     void drawMesh(Mat &inputImg, LaplacianMesh &mesh, string fileName);
     double getDisplacementFactor(const double &leftDisplacement, const double &rightDisplacement);
+    void updateFocalWithRespectToReprojError(const int &i, const double &wc, arma::vec& reprojErrorMeasure);
 
     void SetNConstrainedIterations( int pNCstrIters) {
         this->ineqConstrOptimize.SetNIterations(pNCstrIters);

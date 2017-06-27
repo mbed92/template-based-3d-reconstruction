@@ -19,11 +19,12 @@ private:
     arma::mat Rt;		// Extrinsic matrix  3x4
     arma::mat ARt;		// Projection matrix 3x4
     double f;
+    double focalMax, focalMin;
 
 public:
 
     // Default constructor
-    Camera() {}
+    Camera(){}
 
     // Constructor that create a camera in camera coordinate. Rt = [I|0]
     Camera(const arma::mat& A)
@@ -42,14 +43,13 @@ public:
     {
         this->A  = A;
         this->Rt = Rt;
-
         ARt = A * Rt;
     }
 
     // Load from intrinsic and extrinsic matrix files
     void LoadFromFile(std::string camIntrFile, std::string camExtFile)
     {
-        A. load(camIntrFile);
+        A.load(camIntrFile);
         Rt.load(camExtFile);
         ARt = A * Rt;
 
@@ -57,13 +57,14 @@ public:
         this->f = A.at(0,0);
     }
 
-    // Load from projection matrix file
-    void LoadFromFile(std::string camProjFile)
-    {
-        ARt.load(camProjFile);
 
-        // TODO: Compute A, Rt using QR decomposition
-    }
+    // Load from projection matrix file
+//    void LoadFromFile(std::string camProjFile)
+//    {
+//        ARt.load(camProjFile);
+
+//        // TODO: Compute A, Rt using QR decomposition
+//    }
 
     double getFocal()
     {
@@ -73,13 +74,15 @@ public:
     void setFocal(double focalLength)
     {
         //ASSUME THE fx and fy are equal -> fx == fy
-        A.at(0, 0) = focalLength;
-        A.at(1, 1) = focalLength;
+        this->A.at(0, 0) = focalLength;
+        this->A.at(1, 1) = focalLength;
         this->f = focalLength;
+        ARt = A * Rt;
     }
 
     // Get intrinsic matrix A
-    const arma::mat& GetA() const {
+    arma::mat& GetA()
+    {
         return A;
     }
 

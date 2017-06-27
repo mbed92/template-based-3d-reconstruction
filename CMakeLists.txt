@@ -23,6 +23,7 @@ set(SOURCES main.cpp
     src/kpMatcher.cpp
     src/reconstructor.cpp
     src/utilities.cpp
+    src/simulatedAnnealing.cpp
     epfl/Camera.cpp
     epfl/Mesh/LaplacianMesh.cpp
     epfl/Mesh/TriangleMesh.cpp
@@ -36,6 +37,7 @@ set(HEADER_FILES
     include/utilities.h
     include/reconstructor.h
     include/utilities.h
+    include/simulatedAnnealing.h
     epfl/Camera.h
     epfl/Mesh/LaplacianMesh.h
     epfl/Mesh/TriangleMesh.h

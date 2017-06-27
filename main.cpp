@@ -1,6 +1,7 @@
 #include "include/kpMatcher.h"
 #include "include/reconstructor.h"
 #include "include/utilities.h"
+#include "include/simulatedAnnealing.h"
 
 #include <cstdlib>
 
@@ -43,7 +44,8 @@ int main(int argc, char** argv)
     seconds = (float)t / CLOCKS_PER_SEC;
 
     /*~~~~~~~~~~~~~~~~~~~~~ 3D reconstruction (EPFL) ~~~~~~~~~~~~~~~~~~~~~~~~~*/
-    Ptr<Reconstructor> rec = new Reconstructor();
+    SimulatedAnnealing* simAnn = new SimulatedAnnealing();
+    Ptr<Reconstructor> rec = new Reconstructor(simAnn);
     rec->init(img);
     vector<DMatch> matches = kpm->getMatches();
     vector<KeyPoint> kp1 = kpm->getModelMatchedKeypoints();
@@ -65,8 +67,8 @@ int main(int argc, char** argv)
         kpm->drawKeypointsDisplacement(img, frame, ss.str() + "_disp");
 
         /*save 3d info*/
-        rec->savePointCloud(ss.str());  // save point cloud
-        rec->drawMesh(frame, rec->resMesh, ss.str() );  //save mesh
+        rec->savePointCloud(ss.str());
+        rec->drawMesh(frame, rec->resMesh, ss.str() );
 
         /*save matches*/
         ofstream outfile;
