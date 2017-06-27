@@ -1,10 +1,10 @@
+# Key novelties
 ## [27.06.2017] Simulated annealing:
 From now on user has two options - focal length is known and is optimized during unconstrained optimization or is random (variables set in Reconstructor::init()). In the second case, user has to specify range of focal length - there is no need to specify exactly the focal length - alghoritm is _parameter-less_ in this case. In both cases there was implemented optimization of focal length using Simulated Annealing alghoritm.
 
 ## [19.06.2017] Focal adjustment:
 I presented novelty in adapted 3D reconstruction alghoritm (EPFL). There are alghoritms that optimize extrinsic camera parameters, but - in the knowledge of authors - noone tried to estimate the intrinsic parameters. In unconstrained reconstruction step I track displacement of reprojected points in each iteration. If the displacement in two successive iterations shows that the point is closer to the middle of the image - I assume that focal length is a little bit too long (somehow the distance from camera is expressed as a function of focal length). For better reprojection in next iteration I adjust the focal length and make it smaller. Otherwise, this parameter is enlarged. 
 
-# Key novelties
 ## [23.05.2017] Simulated local deformation:
 Descriptor robust to *out-of-plane* rotations by performing similar approach as in ASIFT article - simulated *local* deformation. I used OpenCV implementation of SIFT. How does it work:
 - find keypoints and descriptors on reference frame
