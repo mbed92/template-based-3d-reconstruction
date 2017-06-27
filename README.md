@@ -20,6 +20,7 @@ http://cvlab.epfl.ch/files/content/sites/cvlab2/files/publications/publications/
 # HOWTO
 ## Build:
 - build using standard procedure (mkdir build -> cd build -> cmake .. -> make)
+- in _build_ create *chessboard.txt* file where are listed all images needed for simulated local deformation. If the size of chessboard patter is other than 9x6, change it in _void KpMatcher::findCorners_.
 - Paste to _build_ folder all files from dataset (EPFL): cam.ext, cam.intr, cam.tdir, ControlPointIds.txt, im_corners.txt, mesh.pts, mesh.tri, webcam.intr, world_corners.txt
 - Usage: ./affineDSC path_to_model.png path_to_frame.png detector descriptor ratio1% ratio2% isPointCloudSaved(0 / 1)
 
@@ -36,5 +37,5 @@ http://cvlab.epfl.ch/files/content/sites/cvlab2/files/publications/publications/
 
 # Milestones:
 - [09.03.17] Adapted EPFL code for my own purposes. 
-- [23.05.17] Simulated local deformation - stable (more or less) version.
+- [23.05.17] Simulated local deformation - stable version.
 - [19.06.17] Focal adjustment added + few minor improvements.
