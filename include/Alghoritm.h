@@ -5,7 +5,7 @@
 #include <memory>
 #include <vector>
 #include <map>
-#include "reconstructor.h"
+#include "Reconstructor.h"
 
 class Reconstructor;
 
@@ -23,7 +23,7 @@ public:
 
     virtual void Run(Reconstructor* rec) = 0;
     virtual void Init() = 0;
-    virtual void Init(std::vector<double>& initValues) = 0;
+
     virtual std::vector<double> GetOptimalParameter() = 0;
     virtual double GetOptimalSolution() = 0;
     virtual void Reset(const double &resetValue) = 0;

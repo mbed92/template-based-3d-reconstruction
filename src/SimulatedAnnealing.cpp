@@ -35,28 +35,9 @@ void SimulatedAnnealing::Init()
     this->counter          = 0;
 }
 
-void SimulatedAnnealing::Init(std::vector<double>& initValues)
-{
-    //initialize internal param vectors
-    this->params            = std::vector<double>(this->numberOfParams);
-    this->optimalParameters = std::vector<double>(this->numberOfParams);
-
-    // specify init parameters
-    this->SetupParams(initValues);
-    this->UpdateOptimalParams();
-
-    // setup alghoritm variables
-    this->tStart           = 1000;
-    this->tEnd             = 10;
-    this->T                = this->tStart;
-    this->decreaseFactor   = 0.95;
-    this->influenceFactor  = 1e-5;
-    this->counter          = 0;
-}
-
 void SimulatedAnnealing::Run(Reconstructor* rec)
 {
-    this->optimalSolution = rec->adjustFocal(this->params);
+    this->optimalSolution = arma::mean(rec->reprojErrors);
 
     // start alghoritm
     while(this->T > this->tEnd)
@@ -67,20 +48,23 @@ void SimulatedAnnealing::Run(Reconstructor* rec)
             // randomly update parameters with random number in specified range
             this->UpdateRandomParams(-0.5, 0.5);
 
-            // check output
+            // check outputr
             double tempOutput = rec->adjustFocal(this->params);
 
             // optimize solution if output is accepted
-            if( (tempOutput == tempOutput && tempOutput < this->optimalSolution) || this->AcceptCondition(tempOutput) > this->GetRandomNumber(0, 1) )
+            if((tempOutput < this->optimalSolution) || this->AcceptCondition(tempOutput) > this->GetRandomNumber(0, 1) )
             {
                 this->optimalSolution  = tempOutput;
                 this->UpdateOptimalParams();
-                rec->updateInternalMatrices(this->GetOptimalParameter()[0]);
+                if(this->GetOptimalParameter().size() == 1) // we have only one parameter to be optimized
+                {
+                    rec->updateInternalMatrices(this->GetOptimalParameter()[0]);
+                }
             }
             k++;
         }
         this->counter++;
-        std::cout << counter << ": " << T << " " << tEnd << " " << rec->modelCamCamera.getFocal() << std::endl;
+        //std::cout << counter << ": " << T << " " << tEnd << " " << rec->modelCamCamera.getFocal() << std::endl;
         this->UpdateTemperature();
     }
 }
@@ -149,7 +133,7 @@ void SimulatedAnnealing::SetupParams(std::vector<double>& initValues)
 
 void SimulatedAnnealing::UpdateOptimalParams()
 {
-    for(size_t i = 0; i < this->numberOfParams; ++i)
+    for(size_t i = 0; i < this->params.size(); ++i)
     {
         this->optimalParameters[i] = this->params[i];
     }
