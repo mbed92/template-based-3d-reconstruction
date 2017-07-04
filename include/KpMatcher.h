@@ -2,8 +2,7 @@
 // Author		:	Michał Bednarek
 // Email		:	michal.gr.bednarek@doctorate.put.poznan.pl
 // Organization	:	Poznan University of Technology
-// Purpose		:	Improvement in ASIFT alghoritm
-// Date			:	in progress since Jan 2017
+// Date			:	2017
 //////////////////////////////////////////////////////////////////////////
 
 #ifndef _KPMATCHER_

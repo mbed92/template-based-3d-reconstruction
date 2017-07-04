@@ -1,3 +1,10 @@
+//////////////////////////////////////////////////////////////////////////
+// Author		:	Michał Bednarek
+// Email		:	michal.gr.bednarek@doctorate.put.poznan.pl
+// Organization	:	Poznan University of Technology
+// Date			:	2017
+//////////////////////////////////////////////////////////////////////////
+
 #include "../include/KpMatcher.h"
 #include <opencv2/opencv.hpp>
 

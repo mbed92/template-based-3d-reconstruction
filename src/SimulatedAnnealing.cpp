@@ -1,4 +1,11 @@
 #include "../include/SimulatedAnnealing.h"
+//////////////////////////////////////////////////////////////////////////
+// Author		:	Michał Bednarek
+// Email		:	michal.gr.bednarek@doctorate.put.poznan.pl
+// Organization	:	Poznan University of Technology
+// Date			:	2017
+//////////////////////////////////////////////////////////////////////////
+
 
 /* Properly create object */
 SimulatedAnnealing::Ptr SA;
