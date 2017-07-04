@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8)
-project(affineDSC)
+project(3DV)
 
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall")
 set (CMAKE_CXX_STANDARD 11)
@@ -45,6 +45,6 @@ find_library( armadillo NAMES "armadillo"
 list(APPEND DEPENDENCIES m  ${armadillo} )
 
 
-add_executable( affineDSC ${SOURCES} ${HEADER_FILES} )
-target_link_libraries( affineDSC ${DEPENDENCIES} )
+add_executable( 3DV ${SOURCES} ${HEADER_FILES} )
+target_link_libraries( 3DV ${DEPENDENCIES} )
 
