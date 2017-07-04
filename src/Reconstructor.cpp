@@ -69,7 +69,7 @@ void Reconstructor::deform()
                 opt->Init();
 
                 //step 1
-                unconstrainedReconstruction(opt);
+                unconstrainedReconstruction(*opt);
             }
         }
         else
@@ -127,7 +127,7 @@ void Reconstructor::setupErrors()
     }
 }
 
-void Reconstructor::unconstrainedReconstruction(Alghoritm* opt)
+void Reconstructor::unconstrainedReconstruction(Alghoritm& opt)
 {
     // Input check
     if (this->matchesAll.n_rows == 0) {
@@ -169,8 +169,8 @@ void Reconstructor::unconstrainedReconstruction(Alghoritm* opt)
         if(arma::mean(reprojErrors) == arma::mean(reprojErrors))
         {
             // run SA alghoritm
-            opt->Run(this);
-            opt->Reset(this->modelCamCamera.getFocal());
+            opt.Run((this));
+            opt.Reset(this->modelCamCamera.getFocal());
         }
 
         // get inliers
@@ -191,7 +191,7 @@ void Reconstructor::unconstrainedReconstruction(Alghoritm* opt)
         wr		= wr 	 / ROBUST_SCALE;
         radius	= radius / ROBUST_SCALE;
 
-        std::cout << "f(" << opt->GetOptimalParameter()[0] << ") = " << opt->GetOptimalSolution() << std::endl;
+        std::cout << "f(" << opt.GetOptimalParameter()[0] << ") = " << opt.GetOptimalSolution() << std::endl;
     }
 }
 

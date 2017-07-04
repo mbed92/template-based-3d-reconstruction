@@ -106,7 +106,7 @@ private:
     arma::vec reprojErrors;
 
 private:
-    void unconstrainedReconstruction(Alghoritm* opt);
+    void unconstrainedReconstruction(Alghoritm &opt);
     void unconstrainedReconstruction();
 
     void updateInternalMatrices(const double& focal);

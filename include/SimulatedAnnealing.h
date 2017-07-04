@@ -31,7 +31,7 @@ public:
     void Init();
 
     // runs alghoritm with specified parameters
-    void Run(Reconstructor *rec);
+    void Run(Reconstructor& rec);
 
     // function to be optimized
     double OptimizationFunction();

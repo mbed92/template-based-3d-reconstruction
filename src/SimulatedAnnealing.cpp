@@ -42,9 +42,9 @@ void SimulatedAnnealing::Init()
     this->counter          = 0;
 }
 
-void SimulatedAnnealing::Run(Reconstructor* rec)
+void SimulatedAnnealing::Run(Reconstructor& rec)
 {
-    this->optimalSolution = arma::mean(rec->reprojErrors);
+    this->optimalSolution = arma::mean(rec.reprojErrors);
 
     // start alghoritm
     while(this->T > this->tEnd)
@@ -56,7 +56,7 @@ void SimulatedAnnealing::Run(Reconstructor* rec)
             this->UpdateRandomParams(-0.5, 0.5);
 
             // check outputr
-            double tempOutput = rec->adjustFocal(this->params);
+            double tempOutput = rec.adjustFocal(this->params);
 
             // optimize solution if output is accepted
             if((tempOutput < this->optimalSolution) || this->AcceptCondition(tempOutput) > this->GetRandomNumber(0, 1) )
@@ -65,7 +65,7 @@ void SimulatedAnnealing::Run(Reconstructor* rec)
                 this->UpdateOptimalParams();
                 if(this->GetOptimalParameter().size() == 1) // we have only one parameter to be optimized
                 {
-                    rec->updateInternalMatrices(this->GetOptimalParameter()[0]);
+                    rec.updateInternalMatrices(this->GetOptimalParameter()[0]);
                 }
             }
             k++;
