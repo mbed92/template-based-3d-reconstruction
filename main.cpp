@@ -13,7 +13,7 @@
 #include <memory>
 #include <cstdlib>
 
-/*shared variables*/
+/*shared variables  */
 string modelPath;
 string framePath;
 Ptr<Feature2D> detector;
