@@ -1,12 +1,10 @@
-#include "include/kpMatcher.h"
-#include "include/reconstructor.h"
-#include "include/utilities.h"
-#include "include/simulatedAnnealing.h"
+#include "include/KpMatcher.h"
+#include "include/Reconstructor.h"
+#include "include/Utilities.h"
+#include "include/SimulatedAnnealing.h"
 
+#include <memory>
 #include <cstdlib>
-
-using namespace std;
-using namespace cv;
 
 /*shared variables*/
 string modelPath;
@@ -19,69 +17,65 @@ float ratio2;
 
 int main(int argc, char** argv)
 {
-    if(argc < 7 || !setupInputParameters(argv))
+    if(argc < 7 || !SetupInputParameters(argv))
     {
         cerr << "Usage: ./affineDSC path_to_model.png path_to_frame.png detector descriptor ratio1% ratio2% isPointCloudSaved(0 / 1)" << endl;
         return EXIT_FAILURE;
     }
 
     /*describe & detect model keypoints*/
-    Ptr<KpMatcher> kpm = new KpMatcher(detector, descriptor);
-    Mat img = kpm->readImage(modelPath, IMREAD_ANYCOLOR );
-    kpm->init(img);
+    unique_ptr<KpMatcher> kpm (new KpMatcher(detector, descriptor));
+    cv::Mat img = kpm->ReadImage(modelPath, cv::IMREAD_ANYCOLOR );
+    kpm->Init(img);
 
     /*describe & detect frame keypoints*/
-    Mat frame = kpm->readImage(framePath, IMREAD_ANYCOLOR );
-    kpm->describeAndDetectFrameKeypoints(frame);
+    cv::Mat frame = kpm->ReadImage(framePath, cv::IMREAD_ANYCOLOR );
+    kpm->DescribeAndDetectFrameKeypoints(frame);
 
     /*matching*/
-    kpm->findCurrentMatches(xFeatureNorm, ratio1);
+    kpm->FindCurrentMatches(xFeatureNorm, ratio1);
     float seconds;
     clock_t t;
     t = clock();
-    kpm->improveBadMatches(xFeatureNorm, ratio2);
+    kpm->ImproveBadMatches(xFeatureNorm, ratio2);
     t = clock() - t;
     seconds = (float)t / CLOCKS_PER_SEC;
 
     /*~~~~~~~~~~~~~~~~~~~~~ 3D reconstruction (EPFL) ~~~~~~~~~~~~~~~~~~~~~~~~~*/
-    SimulatedAnnealing* simAnn = new SimulatedAnnealing();
-    Ptr<Reconstructor> rec = new Reconstructor(simAnn);
+    unique_ptr<Reconstructor> rec (new Reconstructor());
+
     rec->init(img);
-    vector<DMatch> matches = kpm->getMatches();
-    vector<KeyPoint> kp1 = kpm->getModelMatchedKeypoints();
-    vector<KeyPoint> kp2 = kpm->getFrameMatchedKeypoints();
+
+    std::vector<DMatch> matches = kpm->GetMatches();
+    std::vector<KeyPoint> kp1 = kpm->GetModelMatchedKeypoints();
+    std::vector<KeyPoint> kp2 = kpm->GetFrameMatchedKeypoints();
+
     rec->prepareMatches(matches, kp1, kp2);
     rec->deform();
     rec->SetUseTemporal(true);
     rec->SetUsePrevFrameToInit(true);
 
-    if(argv[7] == string("1"))
+    if(argv[7] == std::string("1"))
     {
         /*prepare name*/
-        stringstream ss;
-        ss << "PC_" << getFrameNumber() << "_" << argv[5] << "_" << argv[6] << "_" << argv[3] << "_" << argv[4];
+        std::stringstream ss;
+        ss << "PC_" << GetFrameNumber() << "_" << argv[5] << "_" << argv[6] << "_" << argv[3] << "_" << argv[4];
 
         /*save images*/
-        kpm->drawFoundMatches(img, frame, false, ss.str() + "_all");
-        kpm->drawFoundMatches(img, frame, true, ss.str() + "_imp");
-        kpm->drawKeypointsDisplacement(img, frame, ss.str() + "_disp");
+        kpm->DrawFoundMatches(img, frame, false, ss.str() + "_all");
+        kpm->DrawFoundMatches(img, frame, true, ss.str() + "_imp");
+        kpm->DrawKeypointsDisplacement(img, frame, ss.str() + "_disp");
 
         /*save 3d info*/
         rec->savePointCloud(ss.str());
         rec->drawMesh(frame, rec->resMesh, ss.str() );
 
         /*save matches*/
-        ofstream outfile;
+        std::ofstream outfile;
         outfile.open("matches.txt", std::ios_base::app);
-        outfile << ss.str() << " " << kpm->getMatches().size() << " " << seconds << endl;
+        outfile << ss.str() << " " << kpm->GetMatches().size() << " " << seconds << endl;
         outfile.close();
     }
-
-//    rec->drawMesh(img, *rec->refMesh);
-//    rec->drawMesh(frame, rec->resMesh);
-
-    rec.release();
-    kpm.release();
 
     return EXIT_SUCCESS;
 }
