@@ -29,7 +29,6 @@ public:
 
     // sets up parameters in simulated annealing alghoritm
     void Init();
-    void Init(std::vector<double> &initValues);
 
     // runs alghoritm with specified parameters
     void Run(Reconstructor *rec);
