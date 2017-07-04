@@ -10,18 +10,15 @@
 #include "opencv2/features2d/features2d.hpp"
 #include "opencv2/xfeatures2d.hpp"
 
-using namespace std;
-using namespace cv;
-
-extern string modelPath;
-extern string framePath;
-extern Ptr<Feature2D> detector;
-extern Ptr<Feature2D> descriptor;
-extern NormTypes xFeatureNorm;
+extern std::string modelPath;
+extern std::string framePath;
+extern cv::Ptr<cv::Feature2D> detector;
+extern cv::Ptr<cv::Feature2D> descriptor;
+extern cv::NormTypes xFeatureNorm;
 extern float ratio1;
 extern float ratio2;
 
-bool setupInputParameters(char **argv);
-string getFrameNumber();
+bool SetupInputParameters(char **argv);
+std::string GetFrameNumber();
 
 #endif
