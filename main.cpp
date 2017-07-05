@@ -14,11 +14,11 @@
 #include <cstdlib>
 
 /*shared variables  */
-string modelPath;
-string framePath;
-Ptr<Feature2D> detector;
-Ptr<Feature2D> descriptor;
-NormTypes xFeatureNorm;
+std::string modelPath;
+std::string framePath;
+cv::Ptr<cv::Feature2D> detector;
+cv::Ptr<cv::Feature2D> descriptor;
+cv::NormTypes xFeatureNorm;
 float ratio1;
 float ratio2;
 
@@ -26,12 +26,12 @@ int main(int argc, char** argv)
 {
     if(argc < 7 || !SetupInputParameters(argv))
     {
-        cerr << "Usage: ./affineDSC path_to_model.png path_to_frame.png detector descriptor ratio1% ratio2% isPointCloudSaved(0 / 1)" << endl;
+        std::cerr << "Usage: ./affineDSC path_to_model.png path_to_frame.png detector descriptor ratio1% ratio2% isPointCloudSaved(0 / 1)" << std::endl;
         return EXIT_FAILURE;
     }
 
     /*describe & detect model keypoints*/
-    unique_ptr<KpMatcher> kpm (new KpMatcher(detector, descriptor));
+    std::unique_ptr<KpMatcher> kpm (new KpMatcher(detector, descriptor));
     cv::Mat img = kpm->ReadImage(modelPath, cv::IMREAD_ANYCOLOR );
     kpm->Init(img);
 
@@ -49,13 +49,13 @@ int main(int argc, char** argv)
     seconds = (float)t / CLOCKS_PER_SEC;
 
     /*~~~~~~~~~~~~~~~~~~~~~ 3D reconstruction (EPFL) ~~~~~~~~~~~~~~~~~~~~~~~~~*/
-    unique_ptr<Reconstructor> rec (new Reconstructor());
+    std::unique_ptr<Reconstructor> rec (new Reconstructor());
 
     rec->init(img);
 
-    std::vector<DMatch> matches = kpm->GetMatches();
-    std::vector<KeyPoint> kp1 = kpm->GetModelMatchedKeypoints();
-    std::vector<KeyPoint> kp2 = kpm->GetFrameMatchedKeypoints();
+    std::vector<cv::DMatch> matches = kpm->GetMatches();
+    std::vector<cv::KeyPoint> kp1 = kpm->GetModelMatchedKeypoints();
+    std::vector<cv::KeyPoint> kp2 = kpm->GetFrameMatchedKeypoints();
 
     rec->prepareMatches(matches, kp1, kp2);
     rec->deform();
@@ -80,7 +80,7 @@ int main(int argc, char** argv)
         /*save matches*/
         std::ofstream outfile;
         outfile.open("matches.txt", std::ios_base::app);
-        outfile << ss.str() << " " << kpm->GetMatches().size() << " " << seconds << endl;
+        outfile << ss.str() << " " << kpm->GetMatches().size() << " " << seconds << std::endl;
         outfile.close();
     }
 

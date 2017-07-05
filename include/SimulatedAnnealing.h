@@ -14,23 +14,24 @@
 #include <memory>
 #include <vector>
 #include <map>
+#include <armadillo>
 
-#include "Alghoritm.h"
+#include "Algorithm.h"
 
 /* function for create object */
-Alghoritm* createSA(const int &min, const int &max, const int& innerLoopIterations, const int &numberOfParams);
+put::Algorithm* createSA(const int &min, const int &max, const int& innerLoopIterations, const int &numberOfParams);
 
 /* SA class */
-class SimulatedAnnealing : public Alghoritm
+class SimulatedAnnealing : public put::Algorithm
 {
 public:
     SimulatedAnnealing(const int &min, const int &max, const int& innerLoopIterations, const int &numberOfParams);
     ~SimulatedAnnealing(){}
 
-    // sets up parameters in simulated annealing alghoritm
+    // sets up parameters in simulated annealing algorithm
     void Init();
 
-    // runs alghoritm with specified parameters
+    // runs algorithm with specified parameters
     void Run(Reconstructor& rec);
 
     // function to be optimized

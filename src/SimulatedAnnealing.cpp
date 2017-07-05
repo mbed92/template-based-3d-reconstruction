@@ -1,4 +1,6 @@
 #include "../include/SimulatedAnnealing.h"
+#include "../include/Reconstructor.h"
+
 //////////////////////////////////////////////////////////////////////////
 // Author		:	Michał Bednarek
 // Email		:	michal.gr.bednarek@doctorate.put.poznan.pl
@@ -6,11 +8,10 @@
 // Date			:	2017
 //////////////////////////////////////////////////////////////////////////
 
-
 /* Properly create object */
 SimulatedAnnealing::Ptr SA;
 
-Alghoritm* createSA(const int &min, const int &max, const int& innerLoopIterations, const int &numberOfParams)
+put::Algorithm* createSA(const int &min, const int &max, const int& innerLoopIterations, const int &numberOfParams)
 {
     SA.reset(new SimulatedAnnealing(min, max, innerLoopIterations, numberOfParams));
     return SA.get();
@@ -18,7 +19,7 @@ Alghoritm* createSA(const int &min, const int &max, const int& innerLoopIteratio
 
 /* SA class: */
 SimulatedAnnealing::SimulatedAnnealing(const int &min, const int &max, const int& innerLoopIterations, const int& numberOfParams)
-    : Alghoritm("SA", SA), min(min), max(max), innerLoopIterator(innerLoopIterations), numberOfParams(numberOfParams)
+    : put::Algorithm("SA", SA), min(min), max(max), innerLoopIterator(innerLoopIterations), numberOfParams(numberOfParams)
 {
     srand (time(NULL));
 }
@@ -33,7 +34,7 @@ void SimulatedAnnealing::Init()
     this->UpdateRandomParams(this->min, this->max);
     this->UpdateOptimalParams();
 
-    // setup alghoritm variables
+    // setup algorithm variables
     this->tStart           = 100;
     this->tEnd             = 10;
     this->T                = this->tStart;
@@ -46,7 +47,7 @@ void SimulatedAnnealing::Run(Reconstructor& rec)
 {
     this->optimalSolution = arma::mean(rec.reprojErrors);
 
-    // start alghoritm
+    // start algorithm
     while(this->T > this->tEnd)
     {
         int k = 1;

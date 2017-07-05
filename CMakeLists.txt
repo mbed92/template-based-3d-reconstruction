@@ -25,7 +25,7 @@ set(HEADER_FILES
     include/Reconstructor.h
     include/Utilities.h
     include/SimulatedAnnealing.h
-    include/Alghoritm.h
+    include/Algorithm.h
     epfl/Camera.h
     epfl/Mesh/LaplacianMesh.h
     epfl/Mesh/TriangleMesh.h

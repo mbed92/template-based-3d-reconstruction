@@ -5,18 +5,20 @@
 // Date			:	2017
 //////////////////////////////////////////////////////////////////////////
 
-#ifndef _ALGHORITM_H_
-#define _ALGHORITM_H_
+#ifndef _ALGORITHM_H_
+#define _ALGORITHM_H_
 
 #include <iostream>
 #include <memory>
 #include <vector>
 #include <map>
-#include "Reconstructor.h"
 
+// forward declaration
 class Reconstructor;
 
-class Alghoritm
+namespace put
+{
+class Algorithm
 {
 public:
 
@@ -26,7 +28,7 @@ public:
     };
 
     // overloaded constructor
-    Alghoritm(const std::string _name, Type _type) : type(_type), name(_name) {}
+    Algorithm(const std::string _name, Type _type) : type(_type), name(_name) {}
 
     // cannot be const reference -> we need to mutate Reconstructor class internal matrices during optimization
     virtual void Run(Reconstructor& rec) = 0;
@@ -35,7 +37,7 @@ public:
     virtual std::vector<double> GetOptimalParameter() = 0;
     virtual double GetOptimalSolution() = 0;
     virtual void Reset(const double &resetValue) = 0;
-    virtual ~Alghoritm() {}
+    virtual ~Algorithm() {}
 
 protected:
     // Optimizer type
@@ -45,5 +47,6 @@ protected:
     const std::string name;
 
 };
+}
 
 #endif

@@ -5,21 +5,6 @@
 /*                                                                   */
 /*********************************************************************/
 
-/*~~~~~~~~~~ GENERAL EPFL 3D RECONSTRUCTION ALGHORITM (I hope I understand that...) ~~~~~~~~~~*/
-//  - load 3d mesh from file
-//  - do matching between 2D images
-//  - pick inliers indexes
-//  - reconstruct without constraints (ReconstructPlanarUnconstrIter)
-//      - put all correspondences of inliers to the matrix (buildCorrespondenceMatrix)
-//      - create MPinit matrix using all vertices and all matches
-//      - formulate Laplacian: min(x) ||MP||^2 + wr^2 * ||AP||^2 s.t. ||P|| = 1
-//      - get eigen vectors of above matrix
-//      - set vertex coordinates (resMesh.SetVertexCoords(paramMat * matC)): eigenvectors * parametrization matrix (reference mesh parametrized by control points) = new vertex coords
-//      - update edges (which means to get Z coordinate)
-//      - set vertex coordinates again (resMesh.SetVertexCoords(scale * paramMat * matC))
-//  - optimize using control points (ReconstructIneqConstr)
-//      - TODO: describe optimization step
-
 #ifndef _RECONSTRUCTOR_H_
 #define _RECONSTRUCTOR_H_
 
@@ -27,51 +12,44 @@
 #include <iomanip>
 #include <armadillo>
 
-#include "opencv2/core/core.hpp"
-#include "opencv2/features2d/features2d.hpp"
-#include "opencv2/highgui/highgui.hpp"
-#include "opencv2/opencv.hpp"
-#include "opencv2/xfeatures2d.hpp"
-#include "opencv2/calib3d.hpp"
-#include <GLFW/glfw3.h>
-#include <GL/glu.h>
+#include <opencv2/core/core.hpp>
+#include <opencv2/features2d/features2d.hpp>
+#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/opencv.hpp>
+#include <opencv2/xfeatures2d.hpp>
+#include <opencv2/calib3d.hpp>
 
 #include "../epfl/Mesh/LaplacianMesh.h"
 #include "../epfl/Linear/ObjectiveFunction.h"
 #include "../epfl/Linear/IneqConstrFunction.h"
 #include "../epfl/Linear/IneqConstrOptimize.h"
-
 #include "../epfl/Camera.h"
+
 #include "SimulatedAnnealing.h"
-
-using namespace std;
-using namespace cv;
-
-class Alghoritm;
 
 class Reconstructor
 {
 private:
     // Path and file names
-    string modelCamIntrFile;                        // Camera used for building the model
-    string modelCamExtFile;
-    string trigFile;
-    string refImgFile;
-    string imCornerFile;
-    string ctrlPointsFile;
+    std::string modelCamIntrFile;                        // Camera used for building the model
+    std::string modelCamExtFile;
+    std::string trigFile;
+    std::string refImgFile;
+    std::string imCornerFile;
+    std::string ctrlPointsFile;
 
     arma::urowvec ctrPointIds;                      // Set of control points
     arma::urowvec ctrPointCompIds;      			// Set of control points
 
     Camera modelCamCamera, modelWorldCamera, modelFakeCamera;        // Camera coordinates
                                                                      // Fake camera only for focal length optimization using simulated annealing alghoritm
-    Mat refImg, inputImg, img;                      // Reference image and input image
+    cv::Mat refImg, inputImg, img;                      // Reference image and input image
 
     arma::mat matchesAll, matchesInlier;
     arma::uvec inlierMatchIdxs, matchesInitIdxs;
 
-    arma::mat  			bary3DRefKeypoints;
-    vector<bool> 		existed3DRefKeypoints;		// To indicate a feature points lies on the reference mesh.
+    arma::mat               bary3DRefKeypoints;
+    std::vector<bool> 		existed3DRefKeypoints;		// To indicate a feature points lies on the reference mesh.
 
     arma::mat Minit;			// Correspondence matrix M given all initial matches: MX = 0
     arma::mat MPinit;			// Precomputed matrix MP in the term ||MPc|| + wr * ||APc||
@@ -97,7 +75,7 @@ private:
     static const double ROBUST_SCALE;	// Each iteration of unconstrained reconstruction: decrease by this factor
     static const int DETECT_THRES;
 
-    vector<KeyPoint> kpModel, kpInput;
+    std::vector<cv::KeyPoint> kpModel, kpInput;
 
     IneqConstrOptimize ineqConstrOptimize;	// Due to accumulation of ill-conditioned errors.
 
@@ -106,11 +84,11 @@ private:
     arma::vec reprojErrors;
 
 private:
-    void unconstrainedReconstruction(Alghoritm &opt);
+    void unconstrainedReconstruction(put::Algorithm &opt);
     void unconstrainedReconstruction();
 
     void updateInternalMatrices(const double& focal);
-    bool find3DPointOnMesh(const Point2d& refPoint, arma::rowvec& intersectionPoint);
+    bool find3DPointOnMesh(const cv::Point2d& refPoint, arma::rowvec& intersectionPoint);
     arma::vec findIntersectionRayTriangle(const arma::vec& source, const arma::vec& destination, const arma::mat& vABC);
     void buildCorrespondenceMatrix( const arma::mat& matches );
     void reconstructPlanarUnconstr(const arma::uvec& matchIdxs, double wr , LaplacianMesh &resMesh);
@@ -121,7 +99,7 @@ private:
     {
         return this->MPwAP;
     }
-    double adjustFocal(vector<double> params);
+    double adjustFocal(std::vector<double> params);
     void setupErrors();
 
 public:
@@ -131,11 +109,11 @@ public:
     Reconstructor();
     ~Reconstructor();
 
-    void init(Mat &image);
-    void prepareMatches(vector<DMatch> &matches, vector<KeyPoint> &kp1, vector<KeyPoint> &kp2);
+    void init(cv::Mat &image);
+    void prepareMatches(std::vector<cv::DMatch> &matches, std::vector<cv::KeyPoint> &kp1, std::vector<cv::KeyPoint> &kp2);
     void deform();
-    void savePointCloud(string fileName);
-    void drawMesh(Mat &inputImg, LaplacianMesh &mesh, string fileName);
+    void savePointCloud(std::string fileName);
+    void drawMesh(cv::Mat &inputImg, LaplacianMesh &mesh, std::string fileName);
 
     void SetNConstrainedIterations( int pNCstrIters) {
         this->ineqConstrOptimize.SetNIterations(pNCstrIters);

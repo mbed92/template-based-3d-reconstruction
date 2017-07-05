@@ -1,5 +1,8 @@
 #include "../include/Reconstructor.h"
 
+using namespace std;
+using namespace cv;
+
 const double Reconstructor::ROBUST_SCALE = 2.5;
 const int Reconstructor::DETECT_THRES = 100;
 
@@ -60,7 +63,7 @@ void Reconstructor::deform()
         // for focal length optimization
         if(this->isFocalAdjustment)
         {
-            Alghoritm* opt;
+            put::Algorithm* opt;
             std::string optimizer("SA");
 
             if(optimizer == "SA")
@@ -127,7 +130,7 @@ void Reconstructor::setupErrors()
     }
 }
 
-void Reconstructor::unconstrainedReconstruction(Alghoritm& opt)
+void Reconstructor::unconstrainedReconstruction(put::Algorithm& opt)
 {
     // Input check
     if (this->matchesAll.n_rows == 0) {
@@ -168,8 +171,8 @@ void Reconstructor::unconstrainedReconstruction(Alghoritm& opt)
         // check if NaN
         if(arma::mean(reprojErrors) == arma::mean(reprojErrors))
         {
-            // run SA alghoritm
-            opt.Run((this));
+            // run SA algorithm
+            opt.Run(*(this));
             opt.Reset(this->modelCamCamera.getFocal());
         }
 
