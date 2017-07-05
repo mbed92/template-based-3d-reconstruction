@@ -43,3 +43,4 @@ http://cvlab.epfl.ch/files/content/sites/cvlab2/files/publications/publications/
 - [23.05.17] Simulated local deformation - stable version.
 - [19.06.17] Focal adjustment added + few minor improvements.
 - [27.06.17] Focal adjustment using Simulated Annealing algorithm.
+- [05.07.17] Code refactoring.
